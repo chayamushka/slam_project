@@ -17,8 +17,7 @@ class Display:
     def kp_two_color(im: Image, kp0, kp1, txt="kp_2_color.jpg", save=False):
         im_dis = cv2.drawKeypoints(im.image, kp0, outImage=np.array([]), color=(0, 165, 255),
                                    flags=cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-        im_dis = cv2.drawKeypoints(im_dis, kp1, outImage=np.array([]), color=(255, 255, 0),
-                                   )
+        im_dis = cv2.drawKeypoints(im_dis, kp1, outImage=np.array([]), color=(255, 255, 0),)
 
         Display.end(im_dis, "kps_" + txt, save)
 
@@ -60,5 +59,17 @@ class Display:
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
+        plt.show()
+    @staticmethod
+    def plot_2d(points):
+        fig = plt.figure(figsize=(4, 4))
+        ax = fig.add_subplot(111)
+        ax.scatter(points[:, 0], points[:, 1])
+        # ax.set_ylim(-20,5)
+        # ax.set_xlim(-20, 15)
+        # ax.set_zlim(0,100)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+
         plt.show()
 

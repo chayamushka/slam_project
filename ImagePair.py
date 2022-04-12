@@ -3,16 +3,24 @@ import numpy as np
 
 from Image import Image
 
-MAX_NUM_FEATURES = 500
+
+# MAX_NUM_FEATURES = 500
 
 
 class ImagePair:
 
-    def __init__(self, idx=0):
-        self.idx = idx
-        self.img0 = Image(idx, 0)
-        self.img1 = Image(idx, 1)
+    def __init__(self, img0: Image, img1: Image):
+        self.idx = img0.idx
+        self.img0 = img0
+        self.img1 = img1
         self.matches = None
+        self.points_cloud = None
+    @classmethod
+    def StereoPair(cls, idx=0):
+        return cls(Image(idx, 0), Image(idx, 1))
+
+
+
 
     def apply_images(self, f):
         return f(self.img0), f(self.img1)
@@ -33,8 +41,8 @@ class ImagePair:
             self.BFMatch()
         return self.matches
 
-    def feature_descriptors(self, feature_num=MAX_NUM_FEATURES):
-        orb = cv2.ORB_create(MAX_NUM_FEATURES)
+    def feature_descriptors(self, feature_num):
+        orb = cv2.ORB_create(feature_num)
         self.apply_images(lambda i: Image.detect_kp_compute_des(i, orb))
 
     def BFMatch(self, matcher=None, sort=True):
@@ -42,15 +50,57 @@ class ImagePair:
         self.matches = matcher.match(*self.apply_images(Image.get_des))
         self.matches = sorted(self.matches, key=lambda m: m.distance) if sort else self.matches
 
-    def significant_match(self, ratio=0.8):
-        bf = cv2.BFMatcher()
-        self.knn_matches = bf.knnMatch(*self.apply_images(Image.get_des), k=2)
-        self.significant_matches = []
+    def filter_des(self):
+        indx0 = []
+        indx1 = []
+        # full data
+        kp0, kp1 = np.array(self.get_kps())
+        des0, des1 = np.array(self.get_des())
+        # some data
+        for i,match in enumerate(self.matches):
+            indx0.append(match.queryIdx)
+            indx1.append(match.trainIdx)
+            match.queryIdx = i
+            match.trainIdx = i
+
+        self.img0.set_kp(kp0[indx0])
+        self.img0.set_des(des0[indx0])
+        self.img1.set_kp(kp1[indx1])
+        self.img1.set_des(des1[indx1])
+
+    def significant_match(self, ratio=0.8, update_des=True):
+        matcher = cv2.BFMatcher()
+        self.knn_matches = matcher.knnMatch(*self.get_des(), k=2)
+        self.matches = []
         for m, n in self.knn_matches:
             if m.distance < ratio * n.distance:
-                self.significant_matches.append(m)
-        self.significant_matches = sorted(self.significant_matches, key=lambda m: m.distance)
-        return self.significant_matches
+                self.matches.append(m)
+        self.matches = np.array(sorted(self.matches, key=lambda m: m.distance))
+        if update_des:
+            self.filter_des()
+        return self.matches
 
+    def stereo_filter(self, pixel_Separator=2):
+        kp0, kp1 = self.get_kps()
+        y_dist = list(map(lambda m: abs(kp0[m.queryIdx].pt[1] - kp1[m.trainIdx].pt[1]), self.matches))
+        y_dist = np.array(y_dist)
+        self.matches = self.matches[y_dist <= pixel_Separator]
+        self.filter_des()
+        return self.matches
 
+    def triangulate(self, km1, km2):
+        kp0, kp1 = self.get_kps()
+        points = np.array([[kp0[m.queryIdx].pt, kp1[m.trainIdx].pt] for m in self.matches])
+        self.points_cloud = cv2.triangulatePoints(km1, km2, points[:, 0].T, points[:, 1].T).T
+        self.points_cloud = self.points_cloud[:, :3] / self.points_cloud[:, 3:]
+        return self.points_cloud
 
+    # def filterLength(self, tresh):
+    #     kp0, kp1 = self.get_kps()
+    #     points = np.array([[kp0[match.queryIdx].pt, kp1[match.trainIdx].pt] for match in self.matches])
+    #     new_matches = []
+    #     for i in range(len(self.matches)):
+    #         if abs(self.points_cloud[i].min()) < tresh and abs(self.points_cloud[i].max()) < tresh:
+    #             self.matches.append(m)
+    #     self.matches = np.array(sorted(self.matches, key=lambda m: m.distance))
+    #     self.filter_des()

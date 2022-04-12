@@ -19,3 +19,9 @@ class Image:
 
     def get_kp(self):
         return self.kp
+
+    def set_des(self, des):
+        self.des = des
+
+    def set_kp(self, kp):
+        self.kp = kp
