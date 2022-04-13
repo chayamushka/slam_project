@@ -1,10 +1,11 @@
 import cv2
 import numpy as np
 
+from Constants import *
 from Image import Image
 
 
-# MAX_NUM_FEATURES = 500
+# from SlamEx import SlamEx
 
 
 class ImagePair:
@@ -15,12 +16,16 @@ class ImagePair:
         self.img1 = img1
         self.matches = None
         self.points_cloud = None
+
     @classmethod
-    def StereoPair(cls, idx=0):
-        return cls(Image(idx, 0), Image(idx, 1))
-
-
-
+    def StereoPair(cls, idx=0,  cam1=None, cam2=None, feature_num=MAX_NUM_FEATURES,):
+        pair = cls(Image(idx, 0), Image(idx, 1))
+        pair.feature_descriptors(feature_num)
+        pair.match()
+        pair.stereo_filter()
+        if cam1 is not None:
+            pair.triangulate(cam1, cam2)
+        return pair
 
     def apply_images(self, f):
         return f(self.img0), f(self.img1)
@@ -38,17 +43,17 @@ class ImagePair:
 
     def get_matches(self):
         if self.matches is None:
-            self.BFMatch()
+            self.old_match()
         return self.matches
 
     def feature_descriptors(self, feature_num):
         orb = cv2.ORB_create(feature_num)
         self.apply_images(lambda i: Image.detect_kp_compute_des(i, orb))
 
-    def BFMatch(self, matcher=None, sort=True):
+    def old_match(self):
         matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         self.matches = matcher.match(*self.apply_images(Image.get_des))
-        self.matches = sorted(self.matches, key=lambda m: m.distance) if sort else self.matches
+        self.matches = sorted(self.matches, key=lambda m: m.distance)
 
     def filter_des(self):
         indx0 = []
@@ -57,7 +62,7 @@ class ImagePair:
         kp0, kp1 = np.array(self.get_kps())
         des0, des1 = np.array(self.get_des())
         # some data
-        for i,match in enumerate(self.matches):
+        for i, match in enumerate(self.matches):
             indx0.append(match.queryIdx)
             indx1.append(match.trainIdx)
             match.queryIdx = i
@@ -68,7 +73,7 @@ class ImagePair:
         self.img1.set_kp(kp1[indx1])
         self.img1.set_des(des1[indx1])
 
-    def significant_match(self, ratio=0.8, update_des=True):
+    def match(self, ratio=0.8, update_des=True):
         matcher = cv2.BFMatcher()
         self.knn_matches = matcher.knnMatch(*self.get_des(), k=2)
         self.matches = []
