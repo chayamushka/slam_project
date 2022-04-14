@@ -12,13 +12,13 @@ def q3():
     km0, km1 = k @ m0, k @ m1
     im0 = ImagePair.StereoPair(0, cam1=km0, cam2=km1)
     im1 = ImagePair.StereoPair(1, cam1=km0, cam2=km1)
-    Display.plot_3d(im0.points_cloud)
-    Display.plot_3d(im1.points_cloud)
+    # Display.plot_3d(im0.points_cloud)
+    # Display.plot_3d(im1.points_cloud)
 
     # -------------- 2.2 matches --------------
     pair = ImagePair(im0.img0, im1.img0)
     matches = pair.match(update_des=False)
-    Display.matches(pair, matches=matches)
+    # Display.matches(pair, matches=matches)
 
     # ---------------- 2.3 PnP ----------------
     R, t = SlamMovie.pnp(im0, im1, k, matches, [0, 1, 2, 3, 4, 5, 6, 7])
@@ -30,7 +30,7 @@ def q3():
     cameras = np.array(
         [[left_0[0], left_0[2]], [right_0[0], right_0[2]], [left_1[0], left_1[2]], [right_1[0], right_1[2]]])
 
-    Display.plot_2d(cameras)
+    # Display.plot_2d(cameras)
 
     # ------------- 2.4 supporters -------------
     supporters = SlamMovie.findSupporters(im0, im1, k, m1[:, 3], matches, R, t)
@@ -42,18 +42,18 @@ def q3():
     good_kp1 = list(map(lambda m: m.trainIdx, good_matches))
     bad_kp1 = list(map(lambda m: m.trainIdx, bad_matches))
 
-    for i in range(0):
-        Display.matches(pair, matches=good_matches)
-        Display.matches(pair, matches=bad_matches)
-        Display.kp_two_color(im0.img0, im0.img0.kp[good_kp0], im0.img0.kp[bad_kp0])
-        Display.kp_two_color(im1.img0, im1.img0.kp[good_kp1], im1.img0.kp[bad_kp1])
+
+    # Display.matches(pair, matches=good_matches)
+    # Display.matches(pair, matches=bad_matches)
+    # Display.kp_two_color(im0.img0, im0.img0.kp[good_kp0], im0.img0.kp[bad_kp0])
+    # Display.kp_two_color(im1.img0, im1.img0.kp[good_kp1], im1.img0.kp[bad_kp1])
 
     # ------------- 2.5 RANSAC -------------
 
     best_R, best_t = SlamMovie.max_supporters_RANSAC(im0, im1, k, m1[:, 3], matches, 100)
     cloud1 = im0.points_cloud
-    cloud2 = (best_R @ im0.points_cloud) + best_t
-    Display.plot_3d(cloud1, cloud2)
+    cloud2 = (best_R @ im0.points_cloud.T).T + best_t
+    # Display.plot_3d(cloud1, cloud2)
 
     supporters = SlamMovie.findSupporters(im0, im1, k, m1[:, 3], matches, R, t)
 
@@ -64,11 +64,11 @@ def q3():
     good_kp1 = list(map(lambda m: m.trainIdx, good_matches))
     bad_kp1 = list(map(lambda m: m.trainIdx, bad_matches))
 
-    for i in range(0):
-        Display.matches(pair, matches=good_matches)
-        Display.matches(pair, matches=bad_matches)
-        Display.kp_two_color(im0.img0, im0.img0.kp[good_kp0], im0.img0.kp[bad_kp0])
-        Display.kp_two_color(im1.img0, im1.img0.kp[good_kp1], im1.img0.kp[bad_kp1])
+
+    # Display.matches(pair, matches=good_matches)
+    # Display.matches(pair, matches=bad_matches)
+    # Display.kp_two_color(im0.img0, im0.img0.kp[good_kp0], im0.img0.kp[bad_kp0])
+    # Display.kp_two_color(im1.img0, im1.img0.kp[good_kp1], im1.img0.kp[bad_kp1])
 
     # ----------- 2.6 whole movie -----------
     num = 2760
@@ -80,9 +80,10 @@ def q3():
         movie.transformation(i - 1)
 
     track1 = Display.show_track(movie.transformations, num, 1)
-    track2 = Display.show_track(np.loadtxt(GT_POSES), num, 0)
+    track2 = Display.show_track(np.loadtxt(GT_POSES), 2760, 0)
 
-    Display.plot_2d(track1, track2)
+    Display.plot_2d(track1[:, [0, 2]],track2[:, [0, 2]])
+
 
 
 # def ex1():
