@@ -1,35 +1,22 @@
 import cv2
 import numpy as np
-
+from SlamMovie import SlamMovie
 from Display import Display
 from ImagePair import ImagePair
 from SlamCompute import SlamCompute
+from Constants import *
 
 
 class SlamEx:
-    DATA_PATH = "dataset\\sequences\\00\\"
-    MAX_NUM_FEATURES = 1000
 
-    @staticmethod
-    def read_cameras():
-        with open(SlamEx.DATA_PATH + 'calib.txt') as f:
-            l1 = f.readline().split()[1:]  # skip first token
-            l2 = f.readline().split()[1:]  # skip first token
-        l1 = [float(i) for i in l1]
-        m1 = np.array(l1).reshape(3, 4)
-        l2 = [float(i) for i in l2]
-        m2 = np.array(l2).reshape(3, 4)
-        k = m1[:, :3]
-        m1 = np.linalg.inv(k) @ m1
-        m2 = np.linalg.inv(k) @ m2
-        return k, m1, m2
+
 
     @staticmethod
     def ex1():
         # q1
         img_pair = ImagePair.StereoPair(0)
 
-        img_pair.feature_descriptors(SlamEx.MAX_NUM_FEATURES)
+        img_pair.feature_descriptors(MAX_NUM_FEATURES)
         Display.kp(img_pair.img0, "kp img1.jpg")
         Display.kp(img_pair.img1, "kp img2.jpg")
 
@@ -55,7 +42,7 @@ class SlamEx:
     def ex2():
         # Intro
         img_pair = ImagePair.StereoPair(0)
-        img_pair.feature_descriptors(SlamEx.MAX_NUM_FEATURES)
+        img_pair.feature_descriptors(MAX_NUM_FEATURES)
         img_pair.match()
         kp0, kp1 = img_pair.get_kps()
         matches = img_pair.significant_matches
@@ -84,7 +71,7 @@ class SlamEx:
         print("{:6.2f} %".format((1 - (3 / len(img_pair.img0.image))) * 100))
 
         # q3
-        k, m1, m2 = SlamEx.read_cameras()
+        k, m1, m2 = SlamMovie.read_cameras()
         km1, km2 = k @ m1, k @ m2
         points = np.array([[kp0[m.queryIdx].pt, kp1[m.trainIdx].pt] for m in matches])
         triangulated = np.array([SlamCompute.triangulate_pt(km1, km2, p0, p1) for p0, p1 in points])

@@ -31,6 +31,8 @@ class Display:
 
         Display.end(img_matches, "matches_" + txt, save)
 
+
+
     @staticmethod
     def hist(arr, txt="hist.jpg", save=False):
         h, _, __ = plt.hist(arr, label=txt)
@@ -49,10 +51,14 @@ class Display:
         cv2.waitKey()
 
     @staticmethod
-    def plot_3d(points):
+    def plot_3d(points, points2= None):
         fig = plt.figure(figsize=(4, 4))
         ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=-points[:, 2], cmap='viridis')
+        if points2 is not  None:
+            ax.scatter(points[:, 0], points[:, 1], points[:, 2], c='coral')
+            ax.scatter(points2[:, 0], points2[:, 1], points2[:, 2], c='lightblue')
+        else:
+            ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=-points[:, 2], cmap='viridis')
         # ax.set_ylim(-20,5)
         # ax.set_xlim(-20, 15)
         # ax.set_zlim(0,100)
@@ -60,11 +66,14 @@ class Display:
         ax.set_ylabel("y")
         ax.set_zlabel("z")
         plt.show()
+
+
     @staticmethod
-    def plot_2d(points):
+    def plot_2d(points1, points2=None):
         fig = plt.figure(figsize=(4, 4))
         ax = fig.add_subplot(111)
-        ax.scatter(points[:, 0], points[:, 1])
+        ax.scatter(points1[:, 0], points1[:, 1], c='coral')
+        None if points2 is None else ax.scatter(points2[:, 0], points2[:, 1], c='lightblue')
         # ax.set_ylim(-20,5)
         # ax.set_xlim(-20, 15)
         # ax.set_zlim(0,100)
@@ -72,4 +81,24 @@ class Display:
         ax.set_ylabel("y")
 
         plt.show()
+
+
+    @staticmethod
+    def show_track(pose, num, type):
+        correct = np.eye(3)
+        correct[2, 2] = -1
+        result = [[0, 0, 0]]
+        for i in range(1, num):
+            if type:
+                R = pose[i][0]
+                t = pose[i][1]
+                result.append(correct @ np.add(R @ (0, 0, 0), t))
+            else:
+                R = pose[i].reshape((3, 4))[:, :3]
+                t = pose[i].reshape((3, 4))[:, 3]
+                result.append(np.linalg.inv(R) @ (-t))
+
+        return np.array(result)
+        # print(cameras[:,[0,2]])
+        # Display.plot_2d(cameras[:, [0, 2]])
 

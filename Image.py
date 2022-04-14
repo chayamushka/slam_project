@@ -1,5 +1,7 @@
 import cv2
+
 DATA_PATH = "dataset\\sequences\\00\\"
+
 
 class Image:
     def __init__(self, idx, side):
@@ -19,6 +21,9 @@ class Image:
 
     def get_kp(self):
         return self.kp
+
+    def get_kp_pt(self, idx):
+        return self.kp[idx].pt
 
     def set_des(self, des):
         self.des = des

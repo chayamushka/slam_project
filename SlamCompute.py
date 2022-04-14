@@ -1,4 +1,6 @@
 import numpy as np
+import cv2
+from math import log
 
 
 class SlamCompute:
@@ -16,3 +18,26 @@ class SlamCompute:
         __, _, v = np.linalg.svd(A)
         X = v[-1]
         return X[:-1] / X[-1]
+
+    @staticmethod
+    def projection(pt, K, R=None, t=None):
+        """
+        This function computes the projection of a 3d point on the pixel image
+        :param K: Intrinsic matrix
+        :param R: Rotation matrix
+        :param t: Transition vector
+        :param pt: 3d point
+        :return: 2d point
+        """
+        if R is None:
+            R = np.eye(3)
+        if t is None:
+            t = [0, 0, 0]
+        pt = K @ ((R @ pt) + t)
+        return pt[:2] / pt[2:]
+    @staticmethod
+    def ransac_loop(p, supporters, num_of_point=6):
+        return log(1 - p) / log(1 - pow(supporters, num_of_point))
+
+
+

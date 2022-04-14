@@ -16,6 +16,8 @@ class ImagePair:
         self.img1 = img1
         self.matches = None
         self.points_cloud = None
+        self.R = np.eye(3)
+        self.t = np.zeros(3)
 
     @classmethod
     def StereoPair(cls, idx=0,  cam1=None, cam2=None, feature_num=MAX_NUM_FEATURES,):
@@ -93,6 +95,8 @@ class ImagePair:
         self.filter_des()
         return self.matches
 
+
+
     def triangulate(self, km1, km2):
         kp0, kp1 = self.get_kps()
         points = np.array([[kp0[m.queryIdx].pt, kp1[m.trainIdx].pt] for m in self.matches])
@@ -100,12 +104,4 @@ class ImagePair:
         self.points_cloud = self.points_cloud[:, :3] / self.points_cloud[:, 3:]
         return self.points_cloud
 
-    # def filterLength(self, tresh):
-    #     kp0, kp1 = self.get_kps()
-    #     points = np.array([[kp0[match.queryIdx].pt, kp1[match.trainIdx].pt] for match in self.matches])
-    #     new_matches = []
-    #     for i in range(len(self.matches)):
-    #         if abs(self.points_cloud[i].min()) < tresh and abs(self.points_cloud[i].max()) < tresh:
-    #             self.matches.append(m)
-    #     self.matches = np.array(sorted(self.matches, key=lambda m: m.distance))
-    #     self.filter_des()
+
