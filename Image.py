@@ -7,6 +7,7 @@ class Image:
     def __init__(self, idx, side):
         img_name = '{:06d}.png'.format(idx)
         self.image = cv2.imread(f'{DATA_PATH}image_{side}\\{img_name}', 0)
+
         if self.image is None:
             raise Exception(f"image {DATA_PATH}image_{side}\\{img_name} doesn't exist in current path")
         self.idx = idx
