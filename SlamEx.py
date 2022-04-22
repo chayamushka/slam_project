@@ -1,15 +1,20 @@
 import cv2
 import numpy as np
-from SlamMovie import SlamMovie
+
+from Constants import *
 from Display import Display
 from ImagePair import ImagePair
 from SlamCompute import SlamCompute
-from Constants import *
+from SlamMovie import SlamMovie
 
 
 class SlamEx:
 
-
+    @staticmethod
+    def load_poses(num=2760):
+        pose = np.loadtxt(GT_POSES).reshape((-1, 3, 4))[:num]
+        pose1 = (np.linalg.inv(pose[:, :, :3]) @ (-pose[:, :, 3:])).squeeze()
+        return pose1
 
     @staticmethod
     def ex1():
@@ -152,4 +157,4 @@ class SlamEx:
         track1 = Display.show_track(movie.transformations, num, 1)
         track2 = Display.show_track(np.loadtxt(GT_POSES), 2760, 0)
 
-        Display.plot_2d(track1[:, [0, 2]],track2[:, [0, 2]] )
+        Display.plot_2d(track1[:, [0, 2]], track2[:, [0, 2]])

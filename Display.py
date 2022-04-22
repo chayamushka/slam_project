@@ -84,19 +84,14 @@ class Display:
 
 
     @staticmethod
-    def show_track(pose, num, type):
+    def show_track(pose, num):
         correct = np.eye(3)
         correct[2, 2] = -1
         result = [[0, 0, 0]]
-        for i in range(1, num):
-            if type:
-                R = pose[i][0]
-                t = pose[i][1]
-                result.append(correct @ np.add(R @ (0, 0, 0), t))
-            else:
-                R = pose[i].reshape((3, 4))[:, :3]
-                t = pose[i].reshape((3, 4))[:, 3]
-                result.append(np.linalg.inv(R) @ (-t))
+        for i in range(num):
+            R = pose[i][0]
+            t = pose[i][1]
+            result.append(correct @ np.add(R @ (0, 0, 0), t))
 
         return np.array(result)
         # print(cameras[:,[0,2]])

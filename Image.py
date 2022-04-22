@@ -23,6 +23,7 @@ class Image:
     def get_kp(self):
         return self.kp
 
+
     def get_kp_pt(self, idx):
         return self.kp[idx].pt
 
