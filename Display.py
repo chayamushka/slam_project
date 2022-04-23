@@ -1,8 +1,9 @@
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+
 from Image import Image
 from ImagePair import ImagePair
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 class Display:
@@ -17,7 +18,7 @@ class Display:
     def kp_two_color(im: Image, kp0, kp1, txt="kp_2_color.jpg", save=False):
         im_dis = cv2.drawKeypoints(im.image, kp0, outImage=np.array([]), color=(0, 165, 255),
                                    flags=cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-        im_dis = cv2.drawKeypoints(im_dis, kp1, outImage=np.array([]), color=(255, 255, 0),)
+        im_dis = cv2.drawKeypoints(im_dis, kp1, outImage=np.array([]), color=(255, 255, 0), )
 
         Display.end(im_dis, "kps_" + txt, save)
 
@@ -30,8 +31,6 @@ class Display:
         img_matches = cv2.resize(img_matches, (1300, 360))
 
         Display.end(img_matches, "matches_" + txt, save)
-
-
 
     @staticmethod
     def hist(arr, txt="hist.jpg", save=False):
@@ -51,10 +50,10 @@ class Display:
         cv2.waitKey()
 
     @staticmethod
-    def plot_3d(points, points2= None):
+    def plot_3d(points, points2=None):
         fig = plt.figure(figsize=(4, 4))
         ax = fig.add_subplot(111, projection='3d')
-        if points2 is not  None:
+        if points2 is not None:
             ax.scatter(points[:, 0], points[:, 1], points[:, 2], c='coral')
             ax.scatter(points2[:, 0], points2[:, 1], points2[:, 2], c='lightblue')
         else:
@@ -67,33 +66,18 @@ class Display:
         ax.set_zlabel("z")
         plt.show()
 
-
     @staticmethod
     def plot_2d(points1, points2=None):
         fig = plt.figure(figsize=(4, 4))
         ax = fig.add_subplot(111)
         ax.scatter(points1[:, 0], points1[:, 1], c='coral')
         None if points2 is None else ax.scatter(points2[:, 0], points2[:, 1], c='lightblue')
-        # ax.set_ylim(-20,5)
-        # ax.set_xlim(-20, 15)
-        # ax.set_zlim(0,100)
         ax.set_xlabel("x")
         ax.set_ylabel("y")
 
         plt.show()
 
-
     @staticmethod
     def show_track(pose, num):
-        correct = np.eye(3)
-        correct[2, 2] = -1
-        result = [[0, 0, 0]]
-        for i in range(num):
-            R = pose[i][0]
-            t = pose[i][1]
-            result.append(correct @ np.add(R @ (0, 0, 0), t))
 
-        return np.array(result)
-        # print(cameras[:,[0,2]])
-        # Display.plot_2d(cameras[:, [0, 2]])
-
+        return np.array([t * [1, 1, -1] for r, t in pose[:num]])

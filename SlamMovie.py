@@ -37,8 +37,8 @@ class SlamMovie:
             R = self.transformations[-1][0] @ R
             t = self.transformations[-1][0] @ t + self.transformations[-1][1]
         else:
-            self.transformations.append((np.eye(3), np.zeros(3)))
-        self.transformations.append((R, t))
+            self.transformations.append([np.eye(3), np.zeros(3)])
+        self.transformations.append([R, t])
         return R, t
 
     @staticmethod
@@ -54,7 +54,8 @@ class SlamMovie:
         m1 = np.linalg.inv(k) @ m1
         m2 = np.linalg.inv(k) @ m2
         return k, m1, m2
-
+    def get_track(self, n):
+        return np.array([t * [1, 1, -1] for r, t in self.transformations[:n]])
     def pnp(self, idx, matches, ind):
         points_3d = self.img_pairs[idx].points_cloud[list(map(lambda m: m.queryIdx, matches[ind]))]
         key_points = self.img_pairs[idx + 1].get_kps()[0][list(map(lambda m: m.trainIdx, matches[ind]))]

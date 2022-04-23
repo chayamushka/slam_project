@@ -66,7 +66,7 @@ def q3():
     Display.kp_two_color(im1.img0, im1.img0.kp[good_kp1], im1.img0.kp[bad_kp1])
 
     # ----------- 2.6 whole movie -----------
-    num = 300
+    num = 100
     movie = SlamMovie.Movie()
     movie.add_pair(0)
     for i in range(1, num):
@@ -74,7 +74,7 @@ def q3():
         movie.add_pair(i)
         movie.transformation(i - 1)
 
-    track1 = Display.show_track(movie.transformations, num)
+    track1 = movie.get_track(num)
     track2 = SlamEx.load_poses(num)
 
     Display.plot_2d(track1[:, [0, 2]], track2[:, [0, 2]])

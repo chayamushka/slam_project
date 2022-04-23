@@ -16,6 +16,8 @@ class SlamEx:
         pose1 = (np.linalg.inv(pose[:, :, :3]) @ (-pose[:, :, 3:])).squeeze()
         return pose1
 
+
+
     @staticmethod
     def ex1():
         # q1
