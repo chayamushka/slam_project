@@ -3,6 +3,7 @@ import numpy as np
 
 from Constants import *
 from Display import Display
+from Frame import Frame
 from ImagePair import ImagePair
 from SlamCompute import SlamCompute
 from SlamMovie import SlamMovie
@@ -16,12 +17,10 @@ class SlamEx:
         pose1 = (np.linalg.inv(pose[:, :, :3]) @ (-pose[:, :, 3:])).squeeze()
         return pose1
 
-
-
     @staticmethod
     def ex1():
         # q1
-        img_pair = ImagePair.StereoPair(0)
+        img_pair = Frame(0)
 
         img_pair.feature_descriptors(MAX_NUM_FEATURES)
         Display.kp(img_pair.img0, "kp img1.jpg")
@@ -33,26 +32,26 @@ class SlamEx:
 
         # q3
         # Match features.
-        img_pair.old_match(sort=True)
+        img_pair.match()
         Display.matches(img_pair, txt="matches_pair_0.jpg")
 
         # q4
         img_pair.match()
         bad_matches = list(
-            filter(lambda x: x not in img_pair.significant_matches, map(lambda x: x[0], img_pair.knn_matches)))
+            filter(lambda x: x not in img_pair.matches, map(lambda x: x[0], img_pair.knn_matches)))
 
-        print("good ratio", len(img_pair.significant_matches) / 1000)
-        Display.matches(img_pair, txt="significant_matches.jpg", matches=img_pair.significant_matches)
+        print("good ratio", len(img_pair.matches) / 1000)
+        Display.matches(img_pair, txt="significant_matches.jpg", matches=img_pair.matches)
         Display.matches(img_pair, matches=[bad_matches[-1]], num_matches=1)
 
     @staticmethod
     def ex2():
         # Intro
-        img_pair = ImagePair.StereoPair(0)
+        img_pair = Frame(0)
         img_pair.feature_descriptors(MAX_NUM_FEATURES)
         img_pair.match()
         kp0, kp1 = img_pair.get_kps()
-        matches = img_pair.significant_matches
+        matches = img_pair.matches
 
         # q1
         y_dist = list(map(lambda m: abs(kp0[m.queryIdx].pt[1] - kp1[m.trainIdx].pt[1]), matches))
@@ -99,10 +98,10 @@ class SlamEx:
 
         # -------------- 2.2 matches --------------
         pair = ImagePair(im0.img0, im1.img0)
-        matches = pair.match(update_des=False)
+        matches = pair.match()
         Display.matches(pair, matches=matches)
         # ---------------- 2.3 PnP ----------------
-        R, t = movie.pnp(0, matches, [0, 1, 2, 3, 4, 5, 6, 7])
+        R, t = movie.pnp(1, matches, [0, 1, 2, 3, 4, 5, 6, 7])
         inv_R = np.linalg.inv(R)
         left_0 = np.zeros(3)
         right_0 = left_0 - m1
@@ -113,7 +112,7 @@ class SlamEx:
         Display.plot_2d(cameras)
 
         # ------------- 2.4 supporters -------------
-        supporters = movie.findSupporters(0, matches, R, t)
+        supporters = movie.find_supporters(1, matches, R, t)
         good_matches = matches[supporters]
         bad_matches = matches[np.logical_not(supporters)]
         good_kp0 = list(map(lambda m: m.queryIdx, good_matches))
@@ -133,7 +132,7 @@ class SlamEx:
         cloud2 = (best_R @ im0.points_cloud.T).T + best_t
         Display.plot_3d(cloud1, cloud2)
 
-        supporters = movie.findSupporters(0, matches, R, t)
+        supporters = movie.find_supporters(1, matches, R, t)
 
         good_matches = matches[supporters]
         bad_matches = matches[np.logical_not(supporters)]
@@ -148,7 +147,7 @@ class SlamEx:
         Display.kp_two_color(im1.img0, im1.img0.kp[good_kp1], im1.img0.kp[bad_kp1])
 
         # ----------- 2.6 whole movie -----------
-        num = 2760
+        num = 100
         movie = SlamMovie.Movie()
         movie.add_pair(0)
         for i in range(1, num):
@@ -156,7 +155,7 @@ class SlamEx:
             movie.add_pair(i)
             movie.transformation(i - 1)
 
-        track1 = Display.show_track(movie.transformations, num, 1)
-        track2 = Display.show_track(np.loadtxt(GT_POSES), 2760, 0)
+        track1 = movie.get_positions(num)
+        track2 = SlamEx.load_poses(num)
 
         Display.plot_2d(track1[:, [0, 2]], track2[:, [0, 2]])
