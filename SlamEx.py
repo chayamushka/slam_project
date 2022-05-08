@@ -212,31 +212,31 @@ class SlamEx:
         Display.hist(track_length, "track #", "track length", "track_length_histogram")
 
         # ------------------------- q7 ------------------------- #
-        poses = SlamEx.load_poses(frame_num)
-        last_frame_id = big_track.get_frame_ids()[-1]
-        last_frame = movie.frames[last_frame_id]
-        real_place_l = poses[last_frame_id]  # x,y,z
-        real_place_r = real_place_l
-        real_place_r[:, 3] += movie.stereo_dist
-        cloud = last_frame.triangulate(movie.K @ real_place_l, movie.K @ real_place_r)
-        position = np.append(cloud[big_track.get_match(last_frame_id)],[1])
-        error = lambda p1, p2: np.sum(((p1 - p2) ** 2)) ** 0.5
-        err0 = []
-        err1 = []
-        frames = movie.get_frames(big_track.get_frame_ids())
-        for frame in frames:
-            px_l, px_r = movie.K @ np.c_[frame.R, frame.t] @ position, movie.K @ np.c_[
-                frame.R, frame.t + movie.stereo_dist] @ position
-            x1, x2, y = movie.get_track_location(frame.frame_id, big_track.track_id)
-            error_l = error(np.array([x1, y]), px_l)
-            error_r = error(np.array([x2, y]), px_r)
-            err0.append(error_l)
-            err1.append(error_r)
-        fig, ax = plt.subplots()
-
-        ax.plot(err0, label="left camera error")
-        ax.plot(err1, label="right camera error")
-        ax.legend()
-        plt.title("error")
-        # plt.savefig()
-        plt.show()
+        # poses = SlamEx.load_poses(frame_num)
+        # last_frame_id = big_track.get_frame_ids()[-1]
+        # last_frame = movie.frames[last_frame_id]
+        # real_place_l = poses[last_frame_id]  # x,y,z
+        # real_place_r = real_place_l
+        # real_place_r[:, 3] += movie.stereo_dist
+        # cloud = last_frame.triangulate(movie.K @ real_place_l, movie.K @ real_place_r)
+        # position = np.append(cloud[big_track.get_match(last_frame_id)],[1])
+        # error = lambda p1, p2: np.sum(((p1 - p2) ** 2)) ** 0.5
+        # err0 = []
+        # err1 = []
+        # frames = movie.get_frames(big_track.get_frame_ids())
+        # for frame in frames:
+        #     px_l, px_r = movie.K @ np.c_[frame.R, frame.t] @ position, movie.K @ np.c_[
+        #         frame.R, frame.t + movie.stereo_dist] @ position
+        #     x1, x2, y = movie.get_track_location(frame.frame_id, big_track.track_id)
+        #     error_l = error(np.array([x1, y]), px_l)
+        #     error_r = error(np.array([x2, y]), px_r)
+        #     err0.append(error_l)
+        #     err1.append(error_r)
+        # fig, ax = plt.subplots()
+        #
+        # ax.plot(err0, label="left camera error")
+        # ax.plot(err1, label="right camera error")
+        # ax.legend()
+        # plt.title("error")
+        # # plt.savefig()
+        # plt.show()
