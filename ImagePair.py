@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from Image import Image
-
+from Constants import *
 
 class ImagePair:
 
@@ -36,7 +36,7 @@ class ImagePair:
         orb = cv2.ORB_create(feature_num)
         self.apply_images(lambda i: Image.detect_kp_compute_des(i, orb))
 
-    def match(self, ratio=0.8):
+    def match(self, ratio=SIGNIFICANCE_RATIO):
         matcher = cv2.BFMatcher()
         knn_matches = matcher.knnMatch(*self.get_des(), k=2)
         self.matches = []
