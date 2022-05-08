@@ -1,5 +1,3 @@
-import uuid
-
 import cv2
 import numpy as np
 
@@ -12,15 +10,34 @@ class Frame(ImagePair):
     def __init__(self, idx=0, cam1=None, cam2=None, feature_num=MAX_NUM_FEATURES):
         super().__init__(Image(idx, 0), Image(idx, 1))
         self.frame_id = idx
+
         self.R = np.eye(3)
         self.t = np.zeros(3)
+        self.supporter_ratio = 0
+
         self.feature_descriptors(feature_num)
         self.match()
         self.tracks = []
         if cam1 is not None:
             self.triangulate(cam1, cam2)
-    def set_position(self, R,t):
-        self.R , self.t = R,t
+
+    def get_tracks_ids(self):
+        return self.tracks
+
+    def get_num_track(self):
+        return len(self.tracks)
+
+    def get_inlier_percentage(self):
+        return self.supporter_ratio
+
+    def set_tracks_ids(self, tracks):
+        self.tracks = tracks
+
+
+    def set_position(self, R, t, supporters):
+        self.R, self.t = R, t
+        self.supporter_ratio = sum(supporters) /len(supporters)
+
     def filter_des(self):
         indx0 = []
         indx1 = []
@@ -41,7 +58,9 @@ class Frame(ImagePair):
 
     def match(self, ratio=0.8):
         self.matches = super().match()
+
         self.stereo_filter()
+        print("num matches : ", len(self.matches))
         self.filter_des()
         return self.matches
 
@@ -58,6 +77,3 @@ class Frame(ImagePair):
         self.points_cloud = cv2.triangulatePoints(km1, km2, points[:, 0].T, points[:, 1].T).T
         self.points_cloud = self.points_cloud[:, :3] / self.points_cloud[:, 3:]
         return self.points_cloud
-
-    def get_tracks_ids(self):
-        return list(map(lambda t: t.track_id, self.tracks))

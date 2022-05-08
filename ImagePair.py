@@ -48,4 +48,4 @@ class ImagePair:
 
     @staticmethod
     def get_match_idx(matches):
-        return list(map(lambda m: m.queryIdx, matches)), list(map(lambda m: m.trainIdx, matches))
+        return np.array(list(map(lambda m: m.queryIdx, matches))), np.array(list(map(lambda m: m.trainIdx, matches)))

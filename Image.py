@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 DATA_PATH = "dataset\\sequences\\00\\"
 
@@ -17,11 +18,14 @@ class Image:
         self.kp, self.des = orb.detectAndCompute(self.image, None)
         return self.kp, self.des
 
+    def get_image(self):
+        return self.image
+
     def get_des(self):
         return self.des
 
-    def get_kp(self):
-        return self.kp
+    def get_kp(self, idx=None):
+        return np.array(self.kp) if idx is None else self.kp[idx]
 
     def get_kp_pt(self, idx):
         return self.kp[idx].pt

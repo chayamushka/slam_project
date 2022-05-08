@@ -33,12 +33,31 @@ class Display:
         Display.end(img_matches, "matches_" + txt, save)
 
     @staticmethod
-    def hist(arr, txt="hist.jpg", save=False):
-        h, _, __ = plt.hist(arr, label=txt)
-        plt.xlabel('Y Distance in Pixels')
-        plt.ylabel('Matches Num')
+    def track(movie, track_id, save=False):
+        track = movie.tracks[track_id]
+        frames = movie.get_frames(track.get_frame_ids())
+        for i, frame in enumerate(frames):
+            match_id = track.get_match(frame.frame_id)
+            image0, image1 = frame.img0, frame.img1
+            kp0, kp1 = image0.get_kp(match_id), image1.get_kp(match_id)
+
+            img_0 = cv2.drawKeypoints(image0.get_image(), [kp0], outImage=np.array([]), color=(0, 0, 255),
+                                      flags=cv2.DRAW_MATCHES_FLAGS_DEFAULT)
+            img_1 = cv2.drawKeypoints(image1.get_image(), [kp1], outImage=np.array([]), color=(0, 0, 255),
+                                      flags=cv2.DRAW_MATCHES_FLAGS_DEFAULT)
+            dis = np.hstack((Display.crop_around(img_0, kp0.pt), Display.crop_around(img_1, kp1.pt)))
+
+            Display.end(dis, f"track_{track_id}_frame_{i}.jpg", save)
+
+    @staticmethod
+    def hist(arr, x_label='x', y_label='y', title='histo', save=False):
+        h, _ = np.histogram(arr, bins=np.arange(max(arr) + 2))
+        plt.plot(h)
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.title(title)
         if save:
-            plt.savefig(txt)
+            plt.savefig(title + '.jpg')
         plt.show()
         return h
 
@@ -58,16 +77,13 @@ class Display:
             ax.scatter(points2[:, 0], points2[:, 1], points2[:, 2], c='lightblue')
         else:
             ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=-points[:, 2], cmap='viridis')
-        # ax.set_ylim(-20,5)
-        # ax.set_xlim(-20, 15)
-        # ax.set_zlim(0,100)
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
         plt.show()
 
     @staticmethod
-    def plot_2d(points1, points2=None):
+    def scatter_2d(points1, points2=None):
         fig = plt.figure(figsize=(4, 4))
         ax = fig.add_subplot(111)
         ax.scatter(points1[:, 0], points1[:, 1], c='coral')
@@ -78,6 +94,23 @@ class Display:
         plt.show()
 
     @staticmethod
-    def show_track(pose, num):
+    def crop_around(image, pt, r=100):
+        r = int(r / 2)
+        px, py = int(pt[0]), int(pt[1])
+        return image[py - r:py + r, px - r:px + r]
 
-        return np.array([t * [1, 1, -1] for r, t in pose[:num]])
+    @staticmethod
+    def simple_plot(y, x_name='x', y_name='y', plot_name='plot', save=False, max_y=None):
+        mean = np.mean(y)
+        fig, ax = plt.subplots()
+
+        ax.plot(y, label=y_name)
+        ax.plot([mean] * len(y), label="Mean", linestyle='--')
+        plt.ylim([0, 2 * mean if max_y == None else max_y])
+        ax.set_xlabel(x_name)
+        ax.set_ylabel(y_name)
+        ax.legend()
+        plt.title(plot_name)
+        if save:
+            plt.savefig(plot_name)
+        plt.show()

@@ -10,12 +10,30 @@ from SlamMovie import SlamMovie
 
 
 class SlamEx:
+    @staticmethod
+    def create_movie():
+        K, _, stereo_dist = SlamEx.read_cameras()
+        movie = SlamMovie(K, stereo_dist[:, 3])
+        return movie
 
     @staticmethod
-    def load_poses(num=2760):
+    def load_poses(num=FRAME_NUM):
         pose = np.loadtxt(GT_POSES).reshape((-1, 3, 4))[:num]
-        pose1 = (np.linalg.inv(pose[:, :, :3]) @ (-pose[:, :, 3:])).squeeze()
-        return pose1
+        return (np.linalg.inv(pose[:, :, :3]) @ (-pose[:, :, 3:])).squeeze()
+
+    @staticmethod
+    def read_cameras():
+        with open(CAMERA_PATH) as f:
+            l1 = f.readline().split()[1:]  # skip first token
+            l2 = f.readline().split()[1:]  # skip first token
+        l1 = [float(i) for i in l1]
+        m1 = np.array(l1).reshape(3, 4)
+        l2 = [float(i) for i in l2]
+        m2 = np.array(l2).reshape(3, 4)
+        k = m1[:, :3]
+        m1 = np.linalg.inv(k) @ m1
+        m2 = np.linalg.inv(k) @ m2
+        return k, m1, m2
 
     @staticmethod
     def ex1():
@@ -77,7 +95,7 @@ class SlamEx:
         print("{:6.2f} %".format((1 - (3 / len(img_pair.img0.image))) * 100))
 
         # q3
-        k, m1, m2 = SlamMovie.read_cameras()
+        k, m1, m2 = SlamEx.read_cameras()
         km1, km2 = k @ m1, k @ m2
         points = np.array([[kp0[m.queryIdx].pt, kp1[m.trainIdx].pt] for m in matches])
         triangulated = np.array([SlamCompute.triangulate_pt(km1, km2, p0, p1) for p0, p1 in points])
@@ -90,9 +108,9 @@ class SlamEx:
     @staticmethod
     def ex3():
         # ----------------- 2.1 ------------------
-        movie = SlamMovie.Movie()
+        movie = SlamEx.create_movie()
         m1 = movie.stereo_dist
-        im0, im1 = movie.add_pair(0), movie.add_pair(1)
+        im0, im1 = movie.add_frame(0), movie.add_frame(1)
         Display.plot_3d(im0.points_cloud)
         Display.plot_3d(im1.points_cloud)
 
@@ -109,16 +127,14 @@ class SlamEx:
         right_1 = ((- m1) @ inv_R.T) - t
         cameras = np.array(
             [[left_0[0], left_0[2]], [right_0[0], right_0[2]], [left_1[0], left_1[2]], [right_1[0], right_1[2]]])
-        Display.plot_2d(cameras)
+        Display.scatter_2d(cameras)
 
         # ------------- 2.4 supporters -------------
         supporters = movie.find_supporters(1, matches, R, t)
         good_matches = matches[supporters]
         bad_matches = matches[np.logical_not(supporters)]
-        good_kp0 = list(map(lambda m: m.queryIdx, good_matches))
-        bad_kp0 = list(map(lambda m: m.queryIdx, bad_matches))
-        good_kp1 = list(map(lambda m: m.trainIdx, good_matches))
-        bad_kp1 = list(map(lambda m: m.trainIdx, bad_matches))
+        good_kp0, good_kp1 = ImagePair.get_match_idx(good_matches)
+        bad_kp0, bad_kp1 = ImagePair.get_match_idx(bad_matches)
 
         Display.matches(pair, matches=good_matches)
         Display.matches(pair, matches=bad_matches)
@@ -127,7 +143,7 @@ class SlamEx:
 
         # ------------- 2.5 RANSAC -------------
 
-        best_R, best_t = movie.max_supporters_RANSAC(0, matches, 100)
+        best_R, best_t = movie.max_supporters_RANSAC(1, matches, 100)
         cloud1 = im0.points_cloud
         cloud2 = (best_R @ im0.points_cloud.T).T + best_t
         Display.plot_3d(cloud1, cloud2)
@@ -136,26 +152,60 @@ class SlamEx:
 
         good_matches = matches[supporters]
         bad_matches = matches[np.logical_not(supporters)]
-        good_kp0 = list(map(lambda m: m.queryIdx, good_matches))
-        bad_kp0 = list(map(lambda m: m.queryIdx, bad_matches))
-        good_kp1 = list(map(lambda m: m.trainIdx, good_matches))
-        bad_kp1 = list(map(lambda m: m.trainIdx, bad_matches))
+        good_kp0, good_kp1 = ImagePair.get_match_idx(good_matches)
+        bad_kp0, bad_kp1 = ImagePair.get_match_idx(bad_matches)
 
         Display.matches(pair, matches=good_matches)
         Display.matches(pair, matches=bad_matches)
         Display.kp_two_color(im0.img0, im0.img0.kp[good_kp0], im0.img0.kp[bad_kp0])
         Display.kp_two_color(im1.img0, im1.img0.kp[good_kp1], im1.img0.kp[bad_kp1])
 
-        # ----------- 2.6 whole movie -----------
+        # ----------- 2.6 whole movie - ----------
         num = 100
-        movie = SlamMovie.Movie()
-        movie.add_pair(0)
+        movie = SlamEx.create_movie()
+        movie.add_frame(0)
         for i in range(1, num):
             print(i)
-            movie.add_pair(i)
-            movie.transformation(i - 1)
+            movie.add_frame(i)
+            movie.transformation(i)
 
         track1 = movie.get_positions(num)
         track2 = SlamEx.load_poses(num)
 
-        Display.plot_2d(track1[:, [0, 2]], track2[:, [0, 2]])
+        Display.scatter_2d(track1[:, [0, 2]], track2[:, [0, 2]])
+
+    @staticmethod
+    def ex4():
+        frame_num = FRAME_NUM
+        movie = SlamEx.create_movie()
+        movie.run(frame_num)
+
+        # ------------------------- q2 ------------------------- #
+        print("Total Number Of Tracks:", movie.tracks.get_size())
+        print("Total Number Of Frames:", movie.get_size())
+        print("Mean track length:", np.mean(movie.tracks.get_track_sizes()))
+        print("Min track length:", np.min(movie.tracks.get_track_sizes()))
+        print("Max track length:", np.max(movie.tracks.get_track_sizes()))
+        print("Mean number of frame links", np.mean(list(map(lambda f: f.get_num_track(), movie.frames))))
+
+        # ------------------------- q3 ------------------------- #
+        track_length = np.array(list(map(lambda t: t.get_size(), movie.tracks)))
+        big_track = movie.tracks[np.random.choice(np.argwhere(track_length > 10).squeeze(), 1)[0]]
+        Display.track(movie, big_track.track_id, save=True)
+
+        # ------------------------- q4 ------------------------- #
+        connectivity = np.zeros(len(movie.frames) - 1)
+        for t in movie.tracks:
+            connectivity[t.get_frame_ids()[:-1]] += 1
+        Display.simple_plot(connectivity, 'frames', 'outing tracks', 'connectivity', save=True)
+
+        # ------------------------- q5 ------------------------- #
+        inliers = list(map(lambda f: f.get_inlier_percentage(), movie.frames))
+        Display.simple_plot(inliers[1:], 'frames', 'inlier percentage', 'pnp_inliers', save=True, max_y=1)
+
+        # ------------------------- q6 ------------------------- #
+        Display.hist(track_length, "track #", "track length", "track_length_histogram")
+
+        # ------------------------- q7 ------------------------- #
+        # poses = SlamEx.load_poses(frame_num)
+        # last_frame = movie.frames[big_track.get_frame_ids()[-1]]
