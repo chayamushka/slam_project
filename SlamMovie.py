@@ -45,7 +45,6 @@ class SlamMovie:
         im1, im2 = self.frames[frame_id - 1], self.frames[frame_id]
         pair = ImagePair(im1.img0, im2.img0)
         matches = pair.match()
-
         R, t, supporters = self.max_supporters_RANSAC(frame_id, matches, 100)
         R = im1.R @ R
         t = im1.R @ t + im1.t

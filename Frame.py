@@ -33,10 +33,9 @@ class Frame(ImagePair):
     def set_tracks_ids(self, tracks):
         self.tracks = tracks
 
-
     def set_position(self, R, t, supporters):
         self.R, self.t = R, t
-        self.supporter_ratio = sum(supporters) /len(supporters)
+        self.supporter_ratio = sum(supporters) / len(supporters)
 
     def filter_des(self):
         indx0 = []

@@ -33,7 +33,7 @@ class Tracks:
 
     def __init__(self):
         self.tracks = []
-        self.cur_tracks = np.array([])
+        self.cur_tracks = np.array([])  # TODO : change to use frame.get_track_ods()
 
     def __iter__(self):
         return iter(self.tracks)
@@ -44,7 +44,7 @@ class Tracks:
     def get_size(self):
         return len(self.tracks)
 
-    def get_track_sizes(self):
+    def get_track_lengths(self):
         return list(map(lambda t: t.get_size(), self.tracks))
 
     def get_track(self, track_id: int) -> Track:
@@ -55,7 +55,6 @@ class Tracks:
     def get_track_ids(self, tracks=None):
         tracks = tracks if tracks is not None else self.tracks
         return list(map(lambda t: t.get_id(), tracks))
-
 
     def add_track(self, frame_id, match):
         track = self.Track(len(self.tracks))

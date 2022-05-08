@@ -97,7 +97,7 @@ class Display:
     def crop_around(image, pt, r=100):
         r = int(r / 2)
         px, py = int(pt[0]), int(pt[1])
-        return image[py - r:py + r, px - r:px + r]
+        return image[max(py - r,0):py + r, max(px - r,0):px + r]
 
     @staticmethod
     def simple_plot(y, x_name='x', y_name='y', plot_name='plot', save=False, max_y=None):

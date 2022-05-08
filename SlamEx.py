@@ -1,4 +1,5 @@
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 
 from Constants import *
@@ -17,9 +18,13 @@ class SlamEx:
         return movie
 
     @staticmethod
-    def load_poses(num=FRAME_NUM):
+    def load_positions(num=FRAME_NUM):
         pose = np.loadtxt(GT_POSES).reshape((-1, 3, 4))[:num]
         return (np.linalg.inv(pose[:, :, :3]) @ (-pose[:, :, 3:])).squeeze()
+
+    @staticmethod
+    def load_poses(num=FRAME_NUM):
+        return np.loadtxt(GT_POSES).reshape((-1, 3, 4))[:num]
 
     @staticmethod
     def read_cameras():
@@ -170,27 +175,27 @@ class SlamEx:
             movie.transformation(i)
 
         track1 = movie.get_positions(num)
-        track2 = SlamEx.load_poses(num)
+        track2 = SlamEx.load_positions(num)
 
         Display.scatter_2d(track1[:, [0, 2]], track2[:, [0, 2]])
 
     @staticmethod
     def ex4():
-        frame_num = FRAME_NUM
+        frame_num = 10  # FRAME_NUM
         movie = SlamEx.create_movie()
         movie.run(frame_num)
 
         # ------------------------- q2 ------------------------- #
         print("Total Number Of Tracks:", movie.tracks.get_size())
         print("Total Number Of Frames:", movie.get_size())
-        print("Mean track length:", np.mean(movie.tracks.get_track_sizes()))
-        print("Min track length:", np.min(movie.tracks.get_track_sizes()))
-        print("Max track length:", np.max(movie.tracks.get_track_sizes()))
+        print("Mean track length:", np.mean(movie.tracks.get_track_lengths()))
+        print("Min track length:", np.min(movie.tracks.get_track_lengths()))
+        print("Max track length:", np.max(movie.tracks.get_track_lengths()))
         print("Mean number of frame links", np.mean(list(map(lambda f: f.get_num_track(), movie.frames))))
 
         # ------------------------- q3 ------------------------- #
         track_length = np.array(list(map(lambda t: t.get_size(), movie.tracks)))
-        big_track = movie.tracks[np.random.choice(np.argwhere(track_length > 10).squeeze(), 1)[0]]
+        big_track = movie.tracks[np.random.choice(np.argwhere(track_length > 3).squeeze(), 1)[0]]
         Display.track(movie, big_track.track_id, save=True)
 
         # ------------------------- q4 ------------------------- #
@@ -207,5 +212,31 @@ class SlamEx:
         Display.hist(track_length, "track #", "track length", "track_length_histogram")
 
         # ------------------------- q7 ------------------------- #
-        # poses = SlamEx.load_poses(frame_num)
-        # last_frame = movie.frames[big_track.get_frame_ids()[-1]]
+        poses = SlamEx.load_poses(frame_num)
+        last_frame_id = big_track.get_frame_ids()[-1]
+        last_frame = movie.frames[last_frame_id]
+        real_place_l = poses[last_frame_id]  # x,y,z
+        real_place_r = real_place_l
+        real_place_r[:, 3] += movie.stereo_dist
+        cloud = last_frame.triangulate(movie.K @ real_place_l, movie.K @ real_place_r)
+        position = np.append(cloud[big_track.get_match(last_frame_id)],[1])
+        error = lambda p1, p2: np.sum(((p1 - p2) ** 2)) ** 0.5
+        err0 = []
+        err1 = []
+        frames = movie.get_frames(big_track.get_frame_ids())
+        for frame in frames:
+            px_l, px_r = movie.K @ np.c_[frame.R, frame.t] @ position, movie.K @ np.c_[
+                frame.R, frame.t + movie.stereo_dist] @ position
+            x1, x2, y = movie.get_track_location(frame.frame_id, big_track.track_id)
+            error_l = error(np.array([x1, y]), px_l)
+            error_r = error(np.array([x2, y]), px_r)
+            err0.append(error_l)
+            err1.append(error_r)
+        fig, ax = plt.subplots()
+
+        ax.plot(err0, label="left camera error")
+        ax.plot(err1, label="right camera error")
+        ax.legend()
+        plt.title("error")
+        # plt.savefig()
+        plt.show()
