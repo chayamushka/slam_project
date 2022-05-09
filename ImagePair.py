@@ -33,8 +33,8 @@ class ImagePair:
         return self.matches
 
     def feature_descriptors(self, feature_num):
-        orb = cv2.ORB_create(feature_num)
-        self.apply_images(lambda i: Image.detect_kp_compute_des(i, orb))
+        sift = cv2.SIFT_create(feature_num)
+        self.apply_images(lambda i: Image.detect_kp_compute_des(i, sift))
 
     def match(self, ratio=SIGNIFICANCE_RATIO):
         matcher = cv2.BFMatcher()

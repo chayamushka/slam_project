@@ -14,9 +14,9 @@ class Image:
         self.idx = idx
         self.side = side
 
-    def detect_kp_compute_des(self, orb):
-        self.kp, self.des = orb.detectAndCompute(self.image, None)
-        return self.kp, self.des
+    def detect_kp_compute_des(self, sift):
+        self.kp, self.des = sift.detectAndCompute(self.image, None)
+        return np.array(self.kp), np.array(self.des)
 
     def get_image(self):
         return self.image

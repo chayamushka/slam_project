@@ -85,9 +85,9 @@ class SlamMovie:
             supporters[i] = left0 and left1 and right0 and right1
         return supporters
 
-    def max_supporters_RANSAC(self, idx, matches, max_loop=10000, min_loop=200, num_of_point=6, p=0.99):
+    def max_supporters_RANSAC(self, idx, matches, max_loop=10000, min_loop=20, num_of_point=6, p=0.99):
         num_max_supporters = 0
-        ransac_size = 0
+        ransac_size = 100
         count_loop = 0
         best_R, best_t = np.eye(3), np.zeros(3)
         max_supporters = np.full(len(matches), False)

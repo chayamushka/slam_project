@@ -41,15 +41,16 @@ class Frame(ImagePair):
         indx0 = []
         indx1 = []
         # full data
-        kp0, kp1 = np.array(self.get_kps())
-        des0, des1 = np.array(self.get_des())
+        kp0, kp1 = self.get_kps()
+        des0, des1 = self.get_des()
         # some data
         for i, match in enumerate(self.matches):
             indx0.append(match.queryIdx)
             indx1.append(match.trainIdx)
             match.queryIdx = i
             match.trainIdx = i
-
+        indx0 = np.array(indx0)
+        indx1 = np.array(indx1)
         self.img0.set_kp(kp0[indx0])
         self.img0.set_des(des0[indx0])
         self.img1.set_kp(kp1[indx1])
