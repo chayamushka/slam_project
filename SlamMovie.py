@@ -34,7 +34,7 @@ class SlamMovie:
         track = self.tracks.get_track(track_id)
         pt0 = frame.img0.get_kp_pt(track.get_match(frame_id))
         pt1 = frame.img1.get_kp_pt(track.get_match(frame_id))
-        return pt0[0], *pt1
+        return pt0[0], pt1[0], pt1[1]
 
     def transformation(self, frame_id: int):
         if frame_id > self.frames.size - 1:
@@ -46,6 +46,7 @@ class SlamMovie:
         pair = ImagePair(im1.img0, im2.img0)
         matches = pair.match()
         R, t, supporters = self.max_supporters_RANSAC(frame_id, matches, 100)
+        im2.set_relative_position(R, t)
         R = im1.R @ R
         t = im1.R @ t + im1.t
         im2.set_position(R, t, supporters)
@@ -104,16 +105,16 @@ class SlamMovie:
             except:
                 pass
             count_loop += 1
-        print("before: ", num_max_supporters / len(matches), ": ", num_max_supporters, "/", len(matches))
-        while True:
-            try:
-                R, t = self.pnp(idx, matches, max_supporters)
-                supporters = self.find_supporters(idx, matches, R, t)
-                if sum(supporters) <= num_max_supporters:
-                    break
-                num_max_supporters, max_supporters = sum(supporters), supporters
-                best_R, best_t = R, t
-            except:
-                break
-        print("after: ", num_max_supporters / len(matches), ": ", num_max_supporters, "/", len(matches))
+        # print("before: ", num_max_supporters / len(matches), ": ", num_max_supporters, "/", len(matches))
+        # while True:
+        #     try:
+        #         R, t = self.pnp(idx, matches, max_supporters)
+        #         supporters = self.find_supporters(idx, matches, R, t)
+        #         if sum(supporters) <= num_max_supporters:
+        #             break
+        #         num_max_supporters, max_supporters = sum(supporters), supporters
+        #         best_R, best_t = R, t
+        #     except:
+        #         break
+        # print("after: ", num_max_supporters / len(matches), ": ", num_max_supporters, "/", len(matches))
         return best_R, best_t, max_supporters

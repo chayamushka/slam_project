@@ -83,11 +83,13 @@ class Display:
         plt.show()
 
     @staticmethod
-    def scatter_2d(points1, points2=None):
+    def scatter_2d(points1, points2=None, points3=None, label=None):
         fig = plt.figure(figsize=(4, 4))
         ax = fig.add_subplot(111)
-        ax.scatter(points1[:, 0], points1[:, 1], c='coral')
-        None if points2 is None else ax.scatter(points2[:, 0], points2[:, 1], c='lightblue')
+        ax.scatter(points1[:, 0], points1[:, 1], c='coral',linewidths=0.1)
+        None if points2 is None else ax.scatter(points2[:, 0], points2[:, 1], c='lightblue',linewidths=0.1)
+        None if points2 is None else ax.scatter(points3[:, 0], points3[:, 1], c='green',linewidths=0.1)
+        None if label is None else ax.legend(label)
         ax.set_xlabel("x")
         ax.set_ylabel("y")
 

@@ -13,6 +13,8 @@ class Frame(ImagePair):
 
         self.R = np.eye(3)
         self.t = np.zeros(3)
+        self.R_relative = np.eye(3)
+        self.t_relative = np.zeros(3)
         self.supporter_ratio = 0
 
         self.feature_descriptors(feature_num)
@@ -36,6 +38,9 @@ class Frame(ImagePair):
     def set_position(self, R, t, supporters):
         self.R, self.t = R, t
         self.supporter_ratio = sum(supporters) / len(supporters)
+
+    def set_relative_position(self, R, t):
+        self.R_relative, self.t_relative = R, t
 
     def filter_des(self):
         indx0 = []

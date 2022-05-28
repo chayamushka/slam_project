@@ -1,14 +1,14 @@
 import cv2
 import numpy as np
+import os.path
 
-DATA_PATH = "dataset\\sequences\\00\\"
+DATA_PATH = os.path.join("dataset", "sequences", "00")
 
 
 class Image:
     def __init__(self, idx, side):
         img_name = '{:06d}.png'.format(idx)
-        self.image = cv2.imread(f'{DATA_PATH}image_{side}\\{img_name}', 0)
-
+        self.image = cv2.imread(os.path.join(DATA_PATH,f"image_{side}",f"{img_name}"), 0)
         if self.image is None:
             raise Exception(f"image {DATA_PATH}image_{side}\\{img_name} doesn't exist in current path")
         self.idx = idx
