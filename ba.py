@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import numpy as np
 import gtsam
-import gtsam.utils.plot as gtsam_plot
-
+from gtsam.utils import plot
 
 
 from Constants import *
@@ -14,13 +13,18 @@ from ImagePair import ImagePair
 from SlamCompute import SlamCompute
 from SlamMovie import SlamMovie
 from SlamEx import SlamEx
+from mpl_toolkits.mplot3d import Axes3D
 
 
 
 
 def window_ba(movie, ba_frames, initialEstimate, graph, visited_tracks, uncertainty, K):
     first_frame = True
-    for frame in movie.frames[ba_frames]:
+    er = 0
+    # for frame in movie.frames[ba_frames]:
+    for i in ba_frames:
+        frame = movie.frames[i]
+        er += 0.5
         if first_frame:
             first_frame = False
             # R = frame.R_relative
@@ -38,11 +42,18 @@ def window_ba(movie, ba_frames, initialEstimate, graph, visited_tracks, uncertai
         reversed_relative_R = R.T
         reversed_relative_t = -R.T @ t
 
+
+
+
         leftCamPose = gtsam.Pose3(gtsam.Rot3(reversed_relative_R), gtsam.Point3(reversed_relative_t))
         c = gtsam.symbol('c', frame.frame_id)
         pose_c = leftCamPose
         initialEstimate.insert(c, pose_c)
-        graph.add(gtsam.PriorFactorPose3(c, pose_c, gtsam.noiseModel.Diagonal.Sigmas(np.array([1,1,1,1, 1, 1]))))
+        ###############################################################
+        uncertainty = gtsam.noiseModel.Diagonal.Sigmas(np.array([er, er, er]))
+        graph.add(gtsam.PriorFactorPose3(c, pose_c, gtsam.noiseModel.Diagonal.Sigmas(np.array([1,1,1,1,1,1]))))
+        ###############################################################50,50,50,10,10,10
+        # ???????????? pose and cov
 
         for track_id in frame.tracks:
             if  len(list(set(movie.tracks[track_id].frame_ids) & set(ba_frames))) < 2:
@@ -55,14 +66,33 @@ def window_ba(movie, ba_frames, initialEstimate, graph, visited_tracks, uncertai
             # kp_r_y = movie.frames[frame_id].img1.kp[match].pt[1]
             sp = gtsam.StereoPoint2(kp_l_x, kp_r_x, kp_l_y)
 
-            if track_id not in visited_tracks:
+            ###################
+            will_visited = False
+            for j in range(i+1, ba_frames[-1]+1):
+                if track_id in movie.frames[j].tracks:
+                    will_visited = True
+            if not will_visited:
                 visited_tracks.append(track_id)
                 loc_l = gtsam.StereoCamera(leftCamPose, K).backproject(sp)
                 initialEstimate.insert(l, loc_l)
+                ###############################################################
                 graph.add(gtsam.NonlinearEqualityPoint3(l, loc_l))
+                ###############################################################
+                # ???????????? position by triangulation
 
+            ##################
+            # if track_id not in visited_tracks:
+            #     visited_tracks.append(track_id)
+            #     loc_l = gtsam.StereoCamera(leftCamPose, K).backproject(sp)
+            #     initialEstimate.insert(l, loc_l)
+            #     graph.add(gtsam.NonlinearEqualityPoint3(l, loc_l))
+            ###################
+
+            ###############################################################
             factor = gtsam.GenericStereoFactor3D(sp, uncertainty, c, l, K)
+            ###############################################################
             graph.add(factor)
+            #???????????? partners, position on pixels, cov(4,4,4)
 
 
 def get_array_from_values(object, symbol, values):
@@ -80,13 +110,15 @@ def get_array_from_values(object, symbol, values):
             continue
     return np.array(result)
 
-def show_track_and_points(movie, values):
-    points = get_array_from_values(movie.tracks.tracks, "l", values)
+def show_track_and_points(movie, values, points=None):
+    if points:
+        points = get_array_from_values(movie.tracks.tracks, "l", values)
+        plt.scatter(points[:, 0], points[:, 2], c='lightblue')
+
     pose = get_array_from_values(movie.frames, "c", values)
-    plt.scatter(points[:, 0], points[:, 2], c='lightblue')
     plt.scatter(pose[:, 0], pose[:, 2], c="red")
-    plt.ylim(-100, 500)
-    plt.xlim(-300, 400)
+    # plt.ylim(-0, 300)
+    # plt.xlim(-50, 50)
     plt.show()
 
 
@@ -94,7 +126,8 @@ def show_track_and_points(movie, values):
 
 
 def ex5():
-    frame_num = 3449 # FRAME_NUM
+    """
+    frame_num = 11 # FRAME_NUM
     movie = SlamEx.create_movie()
     movie.run(frame_num)
 
@@ -106,7 +139,7 @@ def ex5():
     baseline = movie.stereo_dist[0]
     K = gtsam.Cal3_S2Stereo(f_x, f_y, skew, c_x, c_y, -baseline)
     uncertainty = gtsam.noiseModel.Diagonal.Sigmas(np.array([1, 1, 1]))
-
+    """
     print("# ------------- Start 5.1 ------------- #")
     """
     print("# ------------- execute 5.1 ------------- #")
@@ -173,12 +206,15 @@ def ex5():
     reprojection_error = np.array(reprojection_error)
 
     plt.plot(reprojection_error[:,2], reprojection_error[:,3])
+    plt.title("factor error as a function of the reprojection error")
     plt.show()
-    plt.plot(reprojection_error[:,1])
-    plt.show()
+    # plt.plot(reprojection_error[:,1])
+    # plt.show()
     plt.plot(reprojection_error[:,2])
+    plt.title("reprojection error")
     plt.show()
     plt.plot(reprojection_error[:,3])
+    plt.title("factor error")
     plt.show()
     """
     print("# ------------- End 5.1 ------------- #")
@@ -202,12 +238,13 @@ def ex5():
     print("error before: ", optimizer.error())
     result = optimizer.optimize()
     print("error after: ", optimizer.error())
+
+
     show_track_and_points(movie, result)
 
-
-    # gtsam_plot.plot_trajectory(1, initialEstimate)
-    # gtsam_plot.set_axes_equal(1)
-    # plt.show()
+    gtsam_plot.plot_trajectory(1, initialEstimate)
+    gtsam_plot.set_axes_equal(1)
+    plt.show()
     #
     # gtsam_plot.plot_trajectory(1, result)
     # gtsam_plot.set_axes_equal(1)
@@ -220,7 +257,8 @@ def ex5():
     print("# ------------- End 5.2 ------------- #")
 
     print("# ------------- Start 5.3 ------------- #")
-    # """
+    """
+
     print("# ------------- execute 5.3 ------------- #")
     ba_start_frame = 1
     keyframes_lens = 20
@@ -280,13 +318,122 @@ def ex5():
     ax.plot(distance)
     plt.title("distance by keyPoint")
     plt.show()
+    """
 
-    # """
+
     print("# ------------- End 5.3 ------------- #")
 
+def ex6():
+    frame_num = 21 # FRAME_NUM
+    movie = SlamEx.create_movie()
+    movie.run(frame_num)
+
+    f_x = movie.K[0, 0]
+    f_y = movie.K[1, 1]
+    skew = movie.K[0, 1]
+    c_x = movie.K[0, 2]
+    c_y = movie.K[1, 2]
+    baseline = movie.stereo_dist[0]
+    K = gtsam.Cal3_S2Stereo(f_x, f_y, skew, c_x, c_y, -baseline)
+
+    ###############################################################
+    uncertainty = gtsam.noiseModel.Diagonal.Sigmas(np.array([1, 1, 1]))
+    ###############################################################
 
 
 
+    ba_start_frame = 1
+    keyframes_lens = 20
+    last_frame = frame_num - 1
 
+
+    PoseGraph = gtsam.NonlinearFactorGraph()
+    PoseGraph_initial = gtsam.Values()
+
+    keyframe_list = []
+    for i in range(ba_start_frame, frame_num, keyframes_lens):
+
+        ba_frames = list(range(i, min(i + keyframes_lens + 1, last_frame+1)))
+        graph = gtsam.NonlinearFactorGraph()
+        initialEstimate = gtsam.Values()
+
+        visited_tracks = []  # ?????
+        print(ba_frames)
+        window_ba(movie, ba_frames, initialEstimate, graph, visited_tracks, uncertainty, K)
+        optimizer = gtsam.LevenbergMarquardtOptimizer(graph, initialEstimate)
+        result = optimizer.optimize()
+
+        marginals = gtsam.Marginals(graph, result)
+        keys = gtsam.KeyVector()
+        print(i, min(i + keyframes_lens, last_frame))
+        keys.append(gtsam.symbol('c', i))
+        keys.append(gtsam.symbol('c', min(i + keyframes_lens, last_frame)))
+        jointCovariance = marginals.jointMarginalCovariance(keys).fullMatrix()
+        jointInformation = np.linalg.inv(jointCovariance)
+        conditionalInformation = jointInformation[6:12, 6:12]
+        conditionalCovariance = np.linalg.inv(conditionalInformation)
+
+        c0 = gtsam.symbol('c', i)
+        pose_c0 = result.atPose3(c0)
+        c1 = gtsam.symbol('c', min(i + keyframes_lens, last_frame))
+        pose_c1 = result.atPose3(c1)
+        relative_pose = pose_c0.between(pose_c1)
+
+        # ex6.1, num=21,20
+        fig = plt.figure()
+        ax = Axes3D(fig)
+        ax.view_init(elev=0, azim=270)
+        plot.plot_trajectory(1, result, marginals=marginals, scale=1)
+        gtsam.utils.plot.set_axes_equal(1)
+        plt.show()
+
+
+        print(relative_pose)
+        print(conditionalCovariance)
+
+
+        # ex6.2, num=3490,20
+        if i == 1:
+            PoseGraph_initial.insert(c0, pose_c0)
+            PoseGraph.add(
+                gtsam.PriorFactorPose3(c0, pose_c0, gtsam.noiseModel.Diagonal.Sigmas(np.array([0.001, 0.001, 0.001, 0.1, 0.1, 0.1]))))
+        else:
+            first_pose = PoseGraph_initial.atPose3(gtsam.symbol('c', i))
+
+        pose = first_pose * pose_c1 if i != 1 else pose_c1
+        PoseGraph_initial.insert(c1, pose)
+        # PoseGraph.add(gtsam.PriorFactorPose3(c1, pose, gtsam.noiseModel.Gaussian.Covariance(conditionalCovariance)))
+        PoseGraph.add(gtsam.BetweenFactorPose3(c0, c1, relative_pose, gtsam.noiseModel.Gaussian.Covariance(conditionalCovariance)))
+        # gtsam.noiseModel.Diagonal.Sigmas(np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001]))
+
+
+
+    # optimizer = gtsam.LevenbergMarquardtOptimizer(PoseGraph, PoseGraph_initial)
+    #
+    # print(optimizer.error())
+    # fig = plt.figure()
+    # ax = Axes3D(fig)
+    # ax.view_init(elev=0, azim=270)
+    # plot.plot_trajectory(1, PoseGraph_initial, scale=1)
+    # gtsam.utils.plot.set_axes_equal(1)
+    # plt.show()
+    #
+    # result = optimizer.optimize()
+    #
+    # print(optimizer.error())
+    # fig = plt.figure()
+    # ax = Axes3D(fig)
+    # ax.view_init(elev=0, azim=270)
+    # plot.plot_trajectory(1, result, scale=1)
+    # gtsam.utils.plot.set_axes_equal(1)
+    # plt.show()
+    #
+    # marginals = gtsam.Marginals(PoseGraph, result)
+    # fig = plt.figure()
+    # ax = Axes3D(fig)
+    # ax.view_init(elev=0, azim=270)
+    # plot.plot_trajectory(1, result ,marginals=marginals, scale=1)
+    # gtsam.utils.plot.set_axes_equal(1)
+    # plt.show()
 
 
