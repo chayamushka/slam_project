@@ -118,3 +118,20 @@ class SlamMovie:
         #         break
         # print("after: ", num_max_supporters / len(matches), ": ", num_max_supporters, "/", len(matches))
         return best_R, best_t, max_supporters
+
+    @staticmethod
+    def save(movie, name=MOVIE_FILE):
+        with open(name, 'wb') as f:
+            pickle.dump(movie, f)
+
+    @staticmethod
+    def load(name = MOVIE_FILE):
+        with open(MOVIE_FILE, 'rb') as f:
+            return pickle.load(f)
+
+
+def save_movie():
+    movie = SlamEx.create_movie()
+    movie.run()
+    movie.save()
+    return movie
