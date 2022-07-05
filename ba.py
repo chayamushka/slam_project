@@ -18,6 +18,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 
+
+
 def window_ba(movie, ba_frames, initialEstimate, graph, visited_tracks, uncertainty, K):
     first_frame = True
     er = 0
@@ -39,10 +41,9 @@ def window_ba(movie, ba_frames, initialEstimate, graph, visited_tracks, uncertai
             last_R = R
             last_t = t
 
+
         reversed_relative_R = R.T
         reversed_relative_t = -R.T @ t
-
-
 
 
         leftCamPose = gtsam.Pose3(gtsam.Rot3(reversed_relative_R), gtsam.Point3(reversed_relative_t))
@@ -323,8 +324,7 @@ def ex5():
 
     print("# ------------- End 5.3 ------------- #")
 
-def ex6():
-    frame_num = 21 # FRAME_NUM
+def ex6(frame_num = 21):
     movie = SlamEx.create_movie()
     movie.run(frame_num)
 
@@ -375,21 +375,36 @@ def ex6():
 
         c0 = gtsam.symbol('c', i)
         pose_c0 = result.atPose3(c0)
+        # t = pose_c0.translation()
+        # t[1] = 0
+        # r = pose_c0.rotation()
+        # pose_c0 = gtsam.Pose3(r, t)
+
         c1 = gtsam.symbol('c', min(i + keyframes_lens, last_frame))
         pose_c1 = result.atPose3(c1)
+        # t = pose_c1.translation()
+        # t[1] = 0
+        # r = pose_c1.rotation()
+        # pose_c1 = gtsam.Pose3(r, t)
+
         relative_pose = pose_c0.between(pose_c1)
+        # t = relative_pose.translation()
+        # t[1] = 0
+        # r = relative_pose.rotation()
+        # relative_pose = gtsam.Pose3(r, t)
+
 
         # ex6.1, num=21,20
-        fig = plt.figure()
-        ax = Axes3D(fig)
-        ax.view_init(elev=0, azim=270)
-        plot.plot_trajectory(1, result, marginals=marginals, scale=1)
-        gtsam.utils.plot.set_axes_equal(1)
-        plt.show()
+        # fig = plt.figure()
+        # ax = Axes3D(fig)
+        # ax.view_init(elev=0, azim=270)
+        # plot.plot_trajectory(1, result, marginals=marginals, scale=1)
+        # gtsam.utils.plot.set_axes_equal(1)
+        # plt.show()
 
 
-        print(relative_pose)
-        print(conditionalCovariance)
+        # print(relative_pose)
+        # print(conditionalCovariance)
 
 
         # ex6.2, num=3490,20
@@ -401,15 +416,27 @@ def ex6():
             first_pose = PoseGraph_initial.atPose3(gtsam.symbol('c', i))
 
         pose = first_pose * pose_c1 if i != 1 else pose_c1
+        # t = pose.translation()
+        # t[1] = 0
+        # r = pose.rotation()
+        # pose = gtsam.Pose3(r, t)
         PoseGraph_initial.insert(c1, pose)
         # PoseGraph.add(gtsam.PriorFactorPose3(c1, pose, gtsam.noiseModel.Gaussian.Covariance(conditionalCovariance)))
         PoseGraph.add(gtsam.BetweenFactorPose3(c0, c1, relative_pose, gtsam.noiseModel.Gaussian.Covariance(conditionalCovariance)))
         # gtsam.noiseModel.Diagonal.Sigmas(np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001]))
 
+    # c0 = gtsam.symbol('c', 101)
+    # pose_c0 = PoseGraph_initial.atPose3(c0)
+    # c2 = gtsam.symbol('c', 121)
+    # pose_c2 = PoseGraph_initial.atPose3(c2)
+    # c1 = gtsam.symbol('c', 1541)
+    # pose_c1 = PoseGraph_initial.atPose3(c1)
+    # relative_pose = pose_c0.between(pose_c2)
+    # PoseGraph.add(
+    #     gtsam.BetweenFactorPose3(c0, c1, relative_pose, gtsam.noiseModel.Diagonal.Sigmas(np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001]))))
+    optimizer = gtsam.LevenbergMarquardtOptimizer(PoseGraph, PoseGraph_initial)
+    ###
 
-
-    # optimizer = gtsam.LevenbergMarquardtOptimizer(PoseGraph, PoseGraph_initial)
-    #
     # print(optimizer.error())
     # fig = plt.figure()
     # ax = Axes3D(fig)
@@ -418,22 +445,30 @@ def ex6():
     # gtsam.utils.plot.set_axes_equal(1)
     # plt.show()
     #
-    # result = optimizer.optimize()
+    result = optimizer.optimize()
     #
     # print(optimizer.error())
-    # fig = plt.figure()
-    # ax = Axes3D(fig)
-    # ax.view_init(elev=0, azim=270)
-    # plot.plot_trajectory(1, result, scale=1)
-    # gtsam.utils.plot.set_axes_equal(1)
-    # plt.show()
-    #
-    # marginals = gtsam.Marginals(PoseGraph, result)
-    # fig = plt.figure()
-    # ax = Axes3D(fig)
-    # ax.view_init(elev=0, azim=270)
-    # plot.plot_trajectory(1, result ,marginals=marginals, scale=1)
-    # gtsam.utils.plot.set_axes_equal(1)
-    # plt.show()
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.view_init(elev=0, azim=270)
+    plot.plot_trajectory(1, result, scale=1)
+    gtsam.utils.plot.set_axes_equal(1)
+    plt.show()
 
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.view_init(elev=0, azim=180)
+    plot.plot_trajectory(1, result, scale=1)
+    gtsam.utils.plot.set_axes_equal(1)
+    plt.show()
+    #
+    marginals = gtsam.Marginals(PoseGraph, result)
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.view_init(elev=0, azim=270)
+    plot.plot_trajectory(1, result ,marginals=marginals, scale=1)
+    gtsam.utils.plot.set_axes_equal(1)
+    plt.show()
+
+    return movie, PoseGraph, PoseGraph_initial, result
 

@@ -45,7 +45,7 @@ class SlamMovie:
         im1, im2 = self.frames[frame_id - 1], self.frames[frame_id]
         pair = ImagePair(im1.img0, im2.img0)
         matches = pair.match()
-        R, t, supporters = self.max_supporters_RANSAC(frame_id, matches, 100)
+        R, t, supporters = self.max_supporters_RANSAC(frame_id-1, frame_id, matches, 100)
         im2.set_relative_position(R, t)
         R = im1.R @ R
         t = im1.R @ t + im1.t
@@ -62,19 +62,19 @@ class SlamMovie:
     def get_positions(self, n):
         return np.array(list(map(lambda f: f.t, self.frames[:n]))) * [1, 1, -1]
 
-    def pnp(self, idx, matches, ind):
+    def pnp(self, first_ind, idx, matches, ind):
         queries, trains = ImagePair.get_match_idx(matches[ind])
-        points_3d = self.frames[idx - 1].points_cloud[queries]
+        points_3d = self.frames[first_ind].points_cloud[queries]
         key_points = self.frames[idx].get_kps()[0][trains]
         pixels = np.expand_dims(cv2.KeyPoint.convert(key_points), axis=1)
         _, rvec, tvec = cv2.solvePnP(points_3d, pixels, self.K, np.zeros((4, 1), dtype=np.float64))
         R = cv2.Rodrigues(rvec)[0]
         return R, tvec.squeeze()
 
-    def find_supporters(self, idx, matches, R, t, pixels=2):
+    def find_supporters(self, first_ind, idx, matches, R, t, pixels=2):
         threshold = lambda ptx, px: np.all(np.abs(ptx - px) <= pixels)
         supporters = np.full(len(matches), True)
-        pair1, pair2 = self.frames[idx - 1], self.frames[idx]
+        pair1, pair2 = self.frames[first_ind], self.frames[idx]
         for i, match in enumerate(matches):
             point = pair1.points_cloud[match.queryIdx]
             left0 = threshold(SlamCompute.projection(point, self.K), pair1.img0.get_kp_pt(match.queryIdx))
@@ -86,7 +86,7 @@ class SlamMovie:
             supporters[i] = left0 and left1 and right0 and right1
         return supporters
 
-    def max_supporters_RANSAC(self, idx, matches, max_loop=10000, min_loop=20, num_of_point=6, p=0.99):
+    def max_supporters_RANSAC(self, first_ind, idx, matches, max_loop=10000, min_loop=20, num_of_point=6, p=0.99):
         num_max_supporters = 0
         ransac_size = 100
         count_loop = 0
@@ -95,8 +95,8 @@ class SlamMovie:
         while ransac_size + min_loop - count_loop > 0 and count_loop < max_loop:
             ind = np.random.choice(len(matches), size=num_of_point, replace=len(matches) < num_of_point)
             try:
-                R, t = self.pnp(idx, matches, ind)
-                supporters = self.find_supporters(idx, matches, R, t)
+                R, t = self.pnp(first_ind, idx, matches, ind)
+                supporters = self.find_supporters(first_ind, idx, matches, R, t)
                 if sum(supporters) > num_max_supporters:
                     num_max_supporters, max_supporters = sum(supporters), supporters
                     best_R, best_t = R, t
@@ -118,20 +118,3 @@ class SlamMovie:
         #         break
         # print("after: ", num_max_supporters / len(matches), ": ", num_max_supporters, "/", len(matches))
         return best_R, best_t, max_supporters
-
-    @staticmethod
-    def save(movie, name=MOVIE_FILE):
-        with open(name, 'wb') as f:
-            pickle.dump(movie, f)
-
-    @staticmethod
-    def load(name = MOVIE_FILE):
-        with open(MOVIE_FILE, 'rb') as f:
-            return pickle.load(f)
-
-
-def save_movie():
-    movie = SlamEx.create_movie()
-    movie.run()
-    movie.save()
-    return movie
