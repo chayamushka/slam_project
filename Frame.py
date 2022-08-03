@@ -7,21 +7,14 @@ from ImagePair import ImagePair
 
 
 class Frame(ImagePair):
-    def __init__(self, idx=0, cam1=None, cam2=None, feature_num=MAX_NUM_FEATURES):
+    def __init__(self, idx=0):
         super().__init__(Image(idx, 0), Image(idx, 1))
         self.frame_id = idx
-
-        self.R = np.eye(3)
-        self.t = np.zeros(3)
         self.R_relative = np.eye(3)
         self.t_relative = np.zeros(3)
         self.supporter_ratio = 0
-
-        self.feature_descriptors(feature_num)
         self.match()
         self.tracks = []
-        if cam1 is not None:
-            self.triangulate(cam1, cam2)
 
     def get_tracks_ids(self):
         return self.tracks
@@ -35,12 +28,9 @@ class Frame(ImagePair):
     def set_tracks_ids(self, tracks):
         self.tracks = tracks
 
-    def set_position(self, R, t, supporters):
-        self.R, self.t = R, t
-        self.supporter_ratio = sum(supporters) / len(supporters)
-
-    def set_relative_position(self, R, t):
+    def set_relative_position(self, R, t,supporters):
         self.R_relative, self.t_relative = R, t
+        self.supporter_ratio = sum(supporters) / len(supporters)
 
     def filter_des(self):
         indx0 = []
@@ -62,23 +52,23 @@ class Frame(ImagePair):
         self.img1.set_des(des1[indx1])
 
     def match(self, ratio=0.8):
-        self.matches = super().match()
-
+        matches = super().match()
+        self.matches = matches
         self.stereo_filter()
-        print("num matches : ", len(self.matches))
+        print("num matches : ", len(matches))
         self.filter_des()
-        return self.matches
+        return matches
 
     def stereo_filter(self, pixels=2):
         kp0, kp1 = self.get_kps()
-        y_dist = list(map(lambda m: abs(kp0[m.queryIdx].pt[1] - kp1[m.trainIdx].pt[1]), self.matches))
+        y_dist = list(map(lambda m: abs(kp0[m.queryIdx][1] - kp1[m.trainIdx][1]), self.matches))
         y_dist = np.array(y_dist)
         self.matches = self.matches[y_dist <= pixels]
         return self.matches
 
     def triangulate(self, km1, km2):
         kp0, kp1 = self.get_kps()
-        points = np.array([[kp0[m.queryIdx].pt, kp1[m.trainIdx].pt] for m in self.matches])
-        self.points_cloud = cv2.triangulatePoints(km1, km2, points[:, 0].T, points[:, 1].T).T
-        self.points_cloud = self.points_cloud[:, :3] / self.points_cloud[:, 3:]
-        return self.points_cloud
+        points = np.array([[kp0[m.queryIdx], kp1[m.trainIdx]] for m in self.matches])
+        points_cloud = cv2.triangulatePoints(km1, km2, points[:, 0].T, points[:, 1].T).T
+        points_cloud = points_cloud[:, :3] / points_cloud[:, 3:]
+        return points_cloud

@@ -61,10 +61,10 @@ def window_ba(movie, ba_frames, initialEstimate, graph, visited_tracks, uncertai
                 continue
             l = gtsam.symbol('l', track_id)
             match = movie.tracks[track_id].track_matches[frame.frame_id]
-            kp_l_x = frame.img0.kp[match].pt[0]
-            kp_l_y = frame.img0.kp[match].pt[1]
-            kp_r_x = frame.img1.kp[match].pt[0]
-            # kp_r_y = movie.frames[frame_id].img1.kp[match].pt[1]
+            kp_l_x = frame.img0.kp[match][0]
+            kp_l_y = frame.img0.kp[match][1]
+            kp_r_x = frame.img1.kp[match][0]
+            # kp_r_y = movie.frames[frame_id].img1.kp[match][1]
             sp = gtsam.StereoPoint2(kp_l_x, kp_r_x, kp_l_y)
 
             ###################
@@ -160,10 +160,10 @@ def ex5():
         frames_list.append((frame_id,big_track.track_matches[frame_id], gtsam.StereoCamera(leftCamPose, K), leftCamPose))
 
     frame_id, match, sc, leftCamPose= frames_list[-1]
-    kp_l_x = movie.frames[frame_id].img0.kp[match].pt[0]
-    kp_l_y = movie.frames[frame_id].img0.kp[match].pt[1]
-    kp_r_x = movie.frames[frame_id].img1.kp[match].pt[0]
-    # kp_r_y = movie.frames[frame_id].img1.kp[match].pt[1]
+    kp_l_x = movie.frames[frame_id].img0.kp[match][0]
+    kp_l_y = movie.frames[frame_id].img0.kp[match][1]
+    kp_r_x = movie.frames[frame_id].img1.kp[match][0]
+    # kp_r_y = movie.frames[frame_id].img1.kp[match][1]
     sp = gtsam.StereoPoint2(kp_l_x,kp_r_x,kp_l_y)
     point3 = frames_list[-1][2].backproject(sp)
 
@@ -181,10 +181,10 @@ def ex5():
         frame_id, match, sc, leftCamPose = frame
         print("frame id:", frame_id)
         estimate_stereoPoint2 = sc.project(point3)
-        kp_l_x = movie.frames[frame_id].img0.kp[match].pt[0]
-        kp_l_y = movie.frames[frame_id].img0.kp[match].pt[1]
-        kp_r_x = movie.frames[frame_id].img1.kp[match].pt[0]
-        # kp_r_y = movie.frames[frame_id].img1.kp[match].pt[1]
+        kp_l_x = movie.frames[frame_id].img0.kp[match][0]
+        kp_l_y = movie.frames[frame_id].img0.kp[match][1]
+        kp_r_x = movie.frames[frame_id].img1.kp[match][0]
+        # kp_r_y = movie.frames[frame_id].img1.kp[match][1]
         real_stereoPoint2 = gtsam.StereoPoint2(kp_l_x, kp_r_x, kp_l_y)
         left_error = np.linalg.norm(estimate_stereoPoint2.vector()[[0,2]] - real_stereoPoint2.vector()[[0,2]])
         right_error = np.linalg.norm(estimate_stereoPoint2.vector()[[1, 2]] - real_stereoPoint2.vector()[[1, 2]])

@@ -217,15 +217,15 @@ def ex7():
                 bad_points1 = [kp for kp in kp1 if kp not in good_points1]
 
 
-                im_dis = cv2.drawKeypoints(im1.img0.image, good_points0, outImage=np.array([]), color=(0, 165, 255),
-                                           flags=cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-                im_dis = cv2.drawKeypoints(im_dis, bad_points0, outImage=np.array([]), color=(255, 255, 0), )
-                Display.end(im_dis, "kps_" + "txt", False)
-
-                im_dis = cv2.drawKeypoints(im2.img0.image, good_points1, outImage=np.array([]), color=(0, 165, 255),
-                                           flags=cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-                im_dis = cv2.drawKeypoints(im_dis, bad_points1, outImage=np.array([]), color=(255, 255, 0), )
-                Display.end(im_dis, "kps_" + "txt", False)
+                # im_dis = cv2.drawKeypoints(im1.img0.image, good_points0, outImage=np.array([]), color=(0, 165, 255),
+                #                            flags=cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
+                # im_dis = cv2.drawKeypoints(im_dis, bad_points0, outImage=np.array([]), color=(255, 255, 0), )
+                # Display.end(im_dis, "kps_" + "txt", False)
+                #
+                # im_dis = cv2.drawKeypoints(im2.img0.image, good_points1, outImage=np.array([]), color=(0, 165, 255),
+                #                            flags=cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
+                # im_dis = cv2.drawKeypoints(im_dis, bad_points1, outImage=np.array([]), color=(255, 255, 0), )
+                # Display.end(im_dis, "kps_" + "txt", False)
 
 
 
@@ -265,14 +265,14 @@ def ex7():
                 for m in range(len(matches)):
                     l = gtsam.symbol('l', m)
                     match = matches[m]
-                    kp_l_x = im1.img0.kp[match.queryIdx].pt[0]
-                    kp_l_y = im1.img0.kp[match.queryIdx].pt[1]
-                    kp_r_x = im1.img1.kp[match.queryIdx].pt[0]
+                    kp_l_x = im1.img0.kp[match.queryIdx][0]
+                    kp_l_y = im1.img0.kp[match.queryIdx][1]
+                    kp_r_x = im1.img1.kp[match.queryIdx][0]
                     sp1 = gtsam.StereoPoint2(kp_l_x, kp_r_x, kp_l_y)
 
-                    kp_l_x = im2.img0.kp[match.trainIdx].pt[0]
-                    kp_l_y = im2.img0.kp[match.trainIdx].pt[1]
-                    kp_r_x = im2.img1.kp[match.trainIdx].pt[0]
+                    kp_l_x = im2.img0.kp[match.trainIdx][0]
+                    kp_l_y = im2.img0.kp[match.trainIdx][1]
+                    kp_r_x = im2.img1.kp[match.trainIdx][0]
                     sp2 = gtsam.StereoPoint2(kp_l_x, kp_r_x, kp_l_y)
 
                     factor = gtsam.GenericStereoFactor3D(sp1, uncertainty, c0, l, K)
