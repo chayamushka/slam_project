@@ -31,6 +31,9 @@ class Tracks:
         def get_match(self, frame_id: int) -> int:
             return self.track_matches[frame_id]
 
+        def __getitem__(self, item) -> int:
+            return self.track_matches[item]
+
     def __init__(self):
         self.tracks = []
         self.cur_tracks = np.array([])  # TODO : change to use frame.get_track_ods()
@@ -38,14 +41,14 @@ class Tracks:
     def __iter__(self):
         return iter(self.tracks)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> Track:
         return self.tracks[item]
 
-    def get_size(self):
+    def __len__(self):
         return len(self.tracks)
 
     def get_track_lengths(self):
-        return list(map(lambda t: t.get_size(), self.tracks))
+        return np.array(list(map(lambda t: t.get_size(), self.tracks)))
 
     def get_track(self, track_id: int) -> Track:
         if track_id >= len(self.tracks):

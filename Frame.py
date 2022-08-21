@@ -12,21 +12,23 @@ class Frame(ImagePair):
         self.frame_id = idx
         self.R_relative = np.eye(3)
         self.t_relative = np.zeros(3)
+        self.ba_R = None
+        self.ba_t = None
         self.supporter_ratio = 0
         self.match()
-        self.tracks = []
+        self.tracks = set()
 
-    def get_tracks_ids(self):
-        return self.tracks
+    def update_tracks_ids(self, tracks):
+        self.tracks.update(set(tracks))
+
+    def get_link_size(self):
+        return len(list(filter(lambda t: not t.is_last(self.frame_id), self.tracks)))
 
     def get_num_track(self):
         return len(self.tracks)
 
     def get_inlier_percentage(self):
         return self.supporter_ratio
-
-    def set_tracks_ids(self, tracks):
-        self.tracks = tracks
 
     def set_relative_position(self, R, t,supporters):
         self.R_relative, self.t_relative = R, t

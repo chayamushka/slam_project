@@ -10,6 +10,7 @@ from SlamCompute import SlamCompute
 from SlamMovie import SlamMovie
 
 
+
 class SlamEx:
     @staticmethod
     def read_cameras():
@@ -39,8 +40,6 @@ class SlamEx:
     @staticmethod
     def load_poses(num=FRAME_NUM):
         return np.loadtxt(GT_POSES).reshape((-1, 3, 4))[:num]
-
-
 
     @staticmethod
     def go(num=FRAME_NUM):
@@ -128,7 +127,7 @@ class SlamEx:
         movie = SlamEx.create_movie()
         m1 = movie.stereo_dist
         im0, im1 = movie.add_frame(0), movie.add_frame(1)
-        cloud1,cloud2 = im0.triangulate(movie.cam1, movie.cam2), im1.triangulate(movie.cam1, movie.cam2)
+        cloud1, cloud2 = im0.triangulate(movie.cam1, movie.cam2), im1.triangulate(movie.cam1, movie.cam2)
         Display.plot_3d(cloud1)
         Display.plot_3d(cloud2)
 
@@ -148,7 +147,7 @@ class SlamEx:
         Display.scatter_2d(cameras)
 
         # ------------- 2.4 supporters -------------
-        supporters = movie.find_supporters(0,1, matches, R, t)
+        supporters = movie.find_supporters(0, 1, matches, R, t)
         good_matches = matches[supporters]
         bad_matches = matches[np.logical_not(supporters)]
         good_kp0, good_kp1 = ImagePair.get_match_idx(good_matches)
@@ -161,12 +160,12 @@ class SlamEx:
 
         # ------------- 2.5 RANSAC -------------
 
-        best_R, best_t = movie.max_supporters_RANSAC(0,1, matches, 100)
+        best_R, best_t = movie.max_supporters_RANSAC(0, 1, matches, 100)
         cloud1 = im0.triangulate(movie.cam1, movie.cam2)
         cloud2 = (best_R @ cloud1.T).T + best_t
         Display.plot_3d(cloud1, cloud2)
 
-        supporters = movie.find_supporters(0,1, matches, R, t)
+        supporters = movie.find_supporters(0, 1, matches, R, t)
 
         good_matches = matches[supporters]
         bad_matches = matches[np.logical_not(supporters)]
@@ -199,8 +198,8 @@ class SlamEx:
         movie.run(frame_num)
 
         # ------------------------- q2 ------------------------- #
-        print("Total Number Of Tracks:", movie.tracks.get_size())
-        print("Total Number Of Frames:", movie.get_size())
+        print("Total Number Of Tracks:", len(movie.tracks))
+        print("Total Number Of Frames:", len(movie.frames))
         print("Mean track length:", np.mean(movie.tracks.get_track_lengths()))
         print("Min track length:", np.min(movie.tracks.get_track_lengths()))
         print("Max track length:", np.max(movie.tracks.get_track_lengths()))

@@ -1,11 +1,12 @@
+import pickle
 import cv2
 import numpy as np
-import pickle
 from Constants import *
 from Frame import Frame
 from ImagePair import ImagePair
 from SlamCompute import SlamCompute
 from Tracks import Tracks
+import gtsam
 
 
 class SlamMovie:
@@ -13,7 +14,7 @@ class SlamMovie:
         self.frames = np.array([])
         self.tracks = Tracks()
         self.K, self.stereo_dist = K, stereo_dist
-        cam1, cam2 = np.c_[np.eye(3), np.zeros(3)], np.c_[np.eye(3), np.zeros(3)]
+        cam1, cam2 = np.c_[R_START, T_START], np.c_[R_START, T_START]
         cam2[:, 3] += self.stereo_dist
         self.cam1, self.cam2 = K @ cam1, K @ cam2
 
@@ -24,9 +25,6 @@ class SlamMovie:
 
     def get_frames(self, frame_id):
         return self.frames[frame_id]
-
-    def get_size(self) -> int:
-        return len(self.frames)
 
     def get_track_location(self, frame_id: int, track_id: int):
         # TODO test this one!
@@ -50,7 +48,9 @@ class SlamMovie:
         # R = im1.R @ R
         # t = im1.R @ t + im1.t
         # im2.set_position(R, t, supporters)
-        im2.set_tracks_ids(self.tracks.update_tracks(frame_id, matches[supporters]))
+        updated_tracks = self.tracks.update_tracks(frame_id, matches[supporters])
+        im1.update_tracks_ids(updated_tracks)
+        im2.update_tracks_ids(updated_tracks)
         return R, t
 
     def run(self, num=FRAME_NUM):
@@ -60,13 +60,18 @@ class SlamMovie:
             self.transformation(i)
 
     def get_t_positions(self, n=FRAME_NUM):
-        R, t = self.get_non_relative_Rt(n)
+        R, t = self.get_non_relative_Rt(self.frames[:n])
         return np.array(t) * [1, 1, -1]
 
-    def get_non_relative_Rt(self, n=FRAME_NUM):
-        R = [self.frames[0].R_relative, ]
-        t = [self.frames[0].t_relative]
-        for f in self.frames[1:n]:
+    @staticmethod
+    def get_non_relative_Rt(frames, stereo_dist=np.array([0, 0, 0])):
+        R = [frames[0].R_relative, ]
+        t = [frames[0].t_relative + stereo_dist]
+        for f in frames[1:]:
+            if f.ba_R is not None:
+                R.append(R[-1] @f.ba_R)
+                t.append(R[-1] @f.ba_t +t[-1])
+                continue
             R.append(R[-1] @ f.R_relative)
             t.append(R[-1] @ f.t_relative + t[-1])
         return R, t
@@ -86,7 +91,7 @@ class SlamMovie:
         pair1, pair2 = self.frames[first_ind], self.frames[idx]
         points = pair1.triangulate(self.cam1, self.cam2)
         for i, match in enumerate(matches):
-            point =points[match.queryIdx]
+            point = points[match.queryIdx]
             left0 = threshold(SlamCompute.projection(point, self.K), pair1.img0.get_kp_pt(match.queryIdx))
             right0 = threshold(SlamCompute.projection(point + self.stereo_dist, self.K),
                                pair1.img1.get_kp_pt(match.queryIdx))
@@ -116,19 +121,18 @@ class SlamMovie:
             except:
                 pass
             count_loop += 1
-        # print("before: ", num_max_supporters / len(matches), ": ", num_max_supporters, "/", len(matches))
-        # while True:
-        #     try:
-        #         R, t = self.pnp(idx, matches, max_supporters)
-        #         supporters = self.find_supporters(idx, matches, R, t)
-        #         if sum(supporters) <= num_max_supporters:
-        #             break
-        #         num_max_supporters, max_supporters = sum(supporters), supporters
-        #         best_R, best_t = R, t
-        #     except:
-        #         break
-        # print("after: ", num_max_supporters / len(matches), ": ", num_max_supporters, "/", len(matches))
         return best_R, best_t, max_supporters
+
+    def update_poses(self, ba_results):
+        if ba_results is None:
+            return
+        for i, frame in enumerate(self.frames):
+            symbol = gtsam.symbol('c', i)
+            if ba_results.exists(symbol):
+                pose = ba_results.atPose3(symbol)
+                R, t = self.get_non_relative_Rt(self.frames[:i])
+                frame.ba_R = np.linalg.inv(R[-1]) @ np.linalg.inv(np.array(pose.rotation().matrix()))
+                frame.ba_t = np.linalg.inv(R[-1]) @ ((np.array(pose.translation()) * [1, 1, -1]) - t[-1])
 
     @staticmethod
     def save(movie):
@@ -142,4 +146,8 @@ class SlamMovie:
     @staticmethod
     def load():
         with open(MOVIE_FILE, 'rb') as f:
-            return pickle.load(f)
+            movie = pickle.load(f)
+        for f in movie.frames:
+            f.ba_R = None
+            f.ba_t = None
+        return movie
